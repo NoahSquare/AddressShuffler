@@ -310,6 +310,7 @@ void initializeDemandedBitsPass(PassRegistry&);
 void initializeFuncletLayoutPass(PassRegistry &);
 void initializeLoopLoadEliminationPass(PassRegistry&);
 void initializeFunctionImportPassPass(PassRegistry &);
+void initializeAddressShufflerPass(PassRegistry&);
 }
 
 #endif

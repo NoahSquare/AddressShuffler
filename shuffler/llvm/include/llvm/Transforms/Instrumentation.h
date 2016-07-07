@@ -150,6 +150,9 @@ inline ModulePass *createDataFlowSanitizerPassForJIT(
 // checking on loads, stores, and other memory intrinsics.
 FunctionPass *createBoundsCheckingPass();
 
+// AddressShuffler
+FunctionPass *createAddressShufflerPass();
+
 /// \brief This pass splits the stack into a safe stack and an unsafe stack to
 /// protect against stack-based overflow vulnerabilities.
 FunctionPass *createSafeStackPass(const TargetMachine *TM = nullptr);
