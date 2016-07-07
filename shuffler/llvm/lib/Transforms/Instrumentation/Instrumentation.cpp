@@ -68,6 +68,7 @@ void llvm::initializeInstrumentation(PassRegistry &Registry) {
   initializeSanitizerCoverageModulePass(Registry);
   initializeDataFlowSanitizerPass(Registry);
   initializeSafeStackPass(Registry);
+  initializeAddressShufflerPass(Registry);
 }
 
 /// LLVMInitializeInstrumentation - C binding for

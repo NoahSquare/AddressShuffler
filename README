@@ -1,12 +1,11 @@
-# ORAM-SGX
-===================
-## Editlog
+# Editlog
 ---
 #### 7/7
-Setting up LLVM Pass for the shuffler
+Setting up LLVM Pass for the shuffler, Shuffler Pass now will be loaded and run automatically
 ##### Modifications
 - Added file llvm/lib/Transforms/Instrumentation/AddressShuffler.cpp
 - Edited file llvm/lib/Transforms/Instrumentation/CMakeLists.txt
 - Edited llvm/include/llvm/InitializePasses.h
 - Edited llvm/include/llvm/Transforms/Instrumentation.h
+- Edited llvm/tools/clang/lib/CodeGen/BackendUtil.cpp
 ---

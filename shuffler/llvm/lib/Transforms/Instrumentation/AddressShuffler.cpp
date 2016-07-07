@@ -33,7 +33,6 @@
 using namespace llvm;
 
 namespace {
-
 	class AddressShuffler : public FunctionPass {
 	 public:
 	  AddressShuffler() : FunctionPass(ID) {}
@@ -42,7 +41,6 @@ namespace {
 	  bool doInitialization(Module &M) override;
 	  static char ID;
 	};
-
 }  // namespace
 
 char AddressShuffler::ID = 0;
@@ -61,6 +59,6 @@ bool AddressShuffler::doInitialization(Module &M) {
 }
 
 bool AddressShuffler::runOnFunction(Function &F) {
-  errs() << "Compiling with AddressShuffler\n";
+  llvm::errs() << "Compiling with AddressShuffler\n";
   return false;
 }
