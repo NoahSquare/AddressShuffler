@@ -132,18 +132,24 @@ bool AddressShuffler::runOnFunction(Function &F) {
 				AllocaInst * AI = dyn_cast<AllocaInst>(Inst);
 				// get type of alloca inst
 				Type *Ty = AI->getAllocatedType();
-				// get size of alloca inst
-				int size = getAllocaSizeInBytes(AI);
-				Constant* AllocSize = ConstantExpr::getSizeOf(Ty);
-				// replacing alloca with malloc
 				Type * ITy = Type::getInt32Ty(getGlobalContext());
+				// get size of alloca inst
+				//int size = getAllocaSizeInBytes(AI);
+				Constant* AllocSize = ConstantExpr::getSizeOf(Ty);
+				AllocSize = ConstantExpr::getTruncOrBitCast(AllocSize, ITy);
+				// replacing alloca with malloc
+
 				Instruction * Malloc = llvm::CallInst::CreateMalloc(Inst,
                                              ITy, Ty, AllocSize,
                                              nullptr, nullptr, "");
-				Inst->eraseFromParent();
-				//ReplaceInstWithInst(Inst, Malloc);
-				//llvm::errs() << "Before instrumentation :: Alloca: " << *Inst << "\n >> size = " << getAllocaSizeInBytes(AI) << "\n";
-				llvm::errs() << "After instrumentation :: " << * Malloc << "\n";
+
+				Inst->removeFromParent();
+
+				//Malloc->setName(Inst->getName());
+				//Inst->eraseFromParent();
+
+				llvm::errs() << "Before instrumentation: " << *Inst << "\n";
+				llvm::errs() << "After instrumentation: " << * Malloc << "\n";
 
 			}
 			NumInstrumented++;

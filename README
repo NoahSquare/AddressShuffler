@@ -14,3 +14,9 @@ Replacing alloca instructions to malloc
 ##### Modifications
 - Edited file llvm/lib/Transforms/Instrumentation/AddressShuffler.cpp
 ---
+#### 7/14
+Adding compiler-rt files, continuing replacing alloca instructions
+##### Modifications
+- Edited file llvm/lib/Transforms/Instrumentation/AddressShuffler.cpp
+- Added files under llvm/project/compiler-rt/lib/shuffler
+---
