@@ -1,15 +1,23 @@
-#include "llvm/Transforms/Instrumentation.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/DepthFirstIterator.h"
+#include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/SmallSet.h"
-#include "llvm/Analysis/MemoryDependenceAnalysis.h"
-#include "llvm/Analysis/ValueTracking.h"
+#include "llvm/ADT/Statistic.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/Triple.h"
+#include "llvm/Analysis/MemoryBuiltins.h"
+#include "llvm/Analysis/MemoryDependenceAnalysis.h"
+#include "llvm/Analysis/ValueTracking.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Dominators.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/CallSite.h"
+#include "llvm/IR/DIBuilder.h"
+#include "llvm/IR/Instructions.h"
 #include "llvm/IR/InlineAsm.h"
 #include "llvm/IR/InstVisitor.h"
 #include "llvm/IR/IntrinsicInst.h"
@@ -18,57 +26,27 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/ValueMap.h"
+#include "llvm/IR/BasicBlock.h"
+#include "llvm/Support/Process.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/DataTypes.h"
+#include "llvm/Support/Endian.h"
+#include "llvm/Support/SwapByteOrder.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Transforms/Utils/BasicBlockUtils.h"
-#include "llvm/Transforms/Utils/Local.h"
-#include "llvm/Transforms/Utils/ModuleUtils.h"
-#include "llvm/Target/TargetLibraryInfo.h"
-#include "llvm/Support/Process.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/IR/BasicBlock.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DepthFirstIterator.h"
-#include "llvm/ADT/SetVector.h"
-#include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/ADT/Triple.h"
-#include "llvm/Analysis/MemoryBuiltins.h"
-#include "llvm/IR/CallSite.h"
-#include "llvm/IR/DIBuilder.h"
-#include "llvm/IR/DataLayout.h"
-#include "llvm/IR/Dominators.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/InlineAsm.h"
-#include "llvm/IR/InstVisitor.h"
-#include "llvm/IR/IntrinsicInst.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/MDBuilder.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Type.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/MC/MCSectionMachO.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/DataTypes.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/Endian.h"
-#include "llvm/Support/SwapByteOrder.h"
-#include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Instrumentation.h"
-#include "llvm/Transforms/Scalar.h"
-#include "llvm/Transforms/Utils/ASanStackFrameLayout.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
-#include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/Transforms/Utils/Local.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
+#include "llvm/Transforms/Utils/ASanStackFrameLayout.h"
+#include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/Transforms/Utils/PromoteMemToReg.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Target/TargetLibraryInfo.h"
+#include "llvm/MC/MCSectionMachO.h"
 #include <algorithm>
-#include <string>
 #include <system_error>
 
 using namespace llvm;
@@ -101,22 +79,18 @@ bool AddressShuffler::doInitialization(Module &M) {
   return true;
 }
 
-uint64_t AddressShuffler::getAllocaSizeInBytes(AllocaInst *AI) {
-    uint64_t ArraySize = 1;
-    if (AI->isArrayAllocation()) {
-      ConstantInt *CI = dyn_cast<ConstantInt>(AI->getArraySize());
-      assert(CI && "non-constant array size");
-      ArraySize = CI->getZExtValue();
-    }
-    Type *Ty = AI->getAllocatedType();
-    uint64_t SizeInBytes =
-        AI->getModule()->getDataLayout().getTypeAllocSize(Ty);
-    return SizeInBytes * ArraySize;
+void warningMessage() {
+	llvm::errs() << "====================================================\n";
+	llvm::errs() << "-                                                  -\n";
+	llvm::errs() << "-                                                  -\n";
+	llvm::errs() << "-  Important: Compiling with AddressShuffler On!   -\n";
+	llvm::errs() << "-                                                  -\n";
+	llvm::errs() << "-                                                  -\n";
+	llvm::errs() << "====================================================\n";
 }
 
-
 bool AddressShuffler::runOnFunction(Function &F) {
-	llvm::errs() << "Compiling with AddressShuffler\n";
+	warningMessage();
 	SmallSet<Value *, 16> TempsToInstrument;
 	SmallVector<Instruction *, 16> ToInstrument;
 	for (auto &BB : F) {
@@ -126,36 +100,52 @@ bool AddressShuffler::runOnFunction(Function &F) {
 	}
 
 	int NumInstrumented = 0;
+	bool allocaFlag = false;
+	Value * malloccall = NULL;
 	for (auto Inst : ToInstrument) {
 			if(isa<AllocaInst>(Inst)) {
-				// handle Alloca instruction
+				// Handle Alloca instructions
 				AllocaInst * AI = dyn_cast<AllocaInst>(Inst);
-				// get type of alloca inst
+				// Get type of alloca inst
 				Type *Ty = AI->getAllocatedType();
 				Type * ITy = Type::getInt32Ty(getGlobalContext());
-				// get size of alloca inst
-				//int size = getAllocaSizeInBytes(AI);
+				// Get size of alloca inst
 				Constant* AllocSize = ConstantExpr::getSizeOf(Ty);
 				AllocSize = ConstantExpr::getTruncOrBitCast(AllocSize, ITy);
-				// replacing alloca with malloc
-
+				// Insert tmp malloc instruction
 				Instruction * Malloc = llvm::CallInst::CreateMalloc(Inst,
                                              ITy, Ty, AllocSize,
                                              nullptr, nullptr, "");
+				// Setting flags to handle store instructions later
+				BitCastInst * BI = dyn_cast<BitCastInst>(Malloc);
+				malloccall = BI->getOperand(0);
+				allocaFlag = true;
+			}
+			else if(isa<StoreInst>(Inst)) {
+				// Handle Store instructions
+				StoreInst * SI = dyn_cast<StoreInst>(Inst);
+				if(allocaFlag == true) {
+					// Handle store instructions which are following alloca instructions
+					// Insert store instruction, store copy to malloc address space 
+					StoreInst * mallocStore = new StoreInst(SI->getValueOperand(), malloccall, Inst);
+					Value * mapFrom = SI->getOperand(0);
+					Value * mapTo = malloccall;
 
-				Inst->removeFromParent();
+					// TODO: call runtime function to map "mapFrom" to "mapTo"
+					// E TODO
 
-				//Malloc->setName(Inst->getName());
-				//Inst->eraseFromParent();
-
-				llvm::errs() << "Before instrumentation: " << *Inst << "\n";
-				llvm::errs() << "After instrumentation: " << * Malloc << "\n";
-
+					// Reset flags
+					allocaFlag = false;
+				}
 			}
 			NumInstrumented++;
 	}
-	
 
+	/****************************************/
+	/*										*/
+	/*      Reference code from Asan        */
+	/*										*/
+	/****************************************/
 	// We want to instrument every address only once per basic block (unless there
 	// are calls between uses).
 	/*
@@ -205,7 +195,6 @@ bool AddressShuffler::runOnFunction(Function &F) {
 	    }
 	}
 	*/
-
 	return false;
 }
 

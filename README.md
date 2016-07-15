@@ -20,3 +20,8 @@ Adding compiler-rt files, continuing replacing alloca instructions
 - Edited file llvm/lib/Transforms/Instrumentation/AddressShuffler.cpp
 - Added files under llvm/project/compiler-rt/lib/shuffler
 ---
+#### 7/15
+Continuing replacing alloca instructions
+##### Modifications
+- Edited file llvm/lib/Transforms/Instrumentation/AddressShuffler.cpp
+---
