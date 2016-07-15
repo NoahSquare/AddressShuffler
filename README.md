@@ -24,9 +24,6 @@ Setting up LLVM Pass for the shuffler, Shuffler Pass now will be loaded and run 
 ---
 #### 7/8
 Replacing alloca instructions to malloc
-##### Modifications
-- Edited file llvm/lib/Transforms/Instrumentation/AddressShuffler.cpp
-- 
 ---
 #### 7/14
 Adding compiler-rt files, continuing replacing alloca instructions
@@ -36,9 +33,6 @@ Adding compiler-rt files, continuing replacing alloca instructions
 ---
 #### 7/15
 Continuing replacing alloca instructions
-##### Modifications
-- Edited file llvm/lib/Transforms/Instrumentation/AddressShuffler.cpp
-- 
 ---
 
 
