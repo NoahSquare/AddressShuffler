@@ -1,3 +1,16 @@
+# Usage
+---
+To build clang/llvm
+> $ make
+
+To test AddressShuffler
+> $ sh test.sh
+
+To browse test file
+> $ cat simple_test.c
+
+---
+#
 # Editlog
 ---
 #### 7/7
@@ -25,3 +38,5 @@ Continuing replacing alloca instructions
 ##### Modifications
 - Edited file llvm/lib/Transforms/Instrumentation/AddressShuffler.cpp
 ---
+
+
