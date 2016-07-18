@@ -99,46 +99,73 @@ bool AddressShuffler::runOnFunction(Function &F) {
 		}
 	}
 
+	// Maps Alloca Value to an AllocaInst from which the Value is originated.
+	typedef DenseMap<Value *, AllocaInst *> htlMapTy;
+  	htlMapTy htlmap;
+
 	int NumInstrumented = 0;
 	bool allocaFlag = false;
+	bool testFlag = false;
+
+	// Variables for debugging
+	Value * testv = NULL;
 	Value * malloccall = NULL;
 	for (auto Inst : ToInstrument) {
-			if(isa<AllocaInst>(Inst)) {
-				// Handle Alloca instructions
-				AllocaInst * AI = dyn_cast<AllocaInst>(Inst);
-				// Get type of alloca inst
-				Type *Ty = AI->getAllocatedType();
-				Type * ITy = Type::getInt32Ty(getGlobalContext());
-				// Get size of alloca inst
-				Constant* AllocSize = ConstantExpr::getSizeOf(Ty);
-				AllocSize = ConstantExpr::getTruncOrBitCast(AllocSize, ITy);
-				// Insert tmp malloc instruction
-				Instruction * Malloc = llvm::CallInst::CreateMalloc(Inst,
-                                             ITy, Ty, AllocSize,
-                                             nullptr, nullptr, "");
-				// Setting flags to handle store instructions later
-				BitCastInst * BI = dyn_cast<BitCastInst>(Malloc);
-				malloccall = BI->getOperand(0);
-				allocaFlag = true;
-			}
-			else if(isa<StoreInst>(Inst)) {
-				// Handle Store instructions
-				StoreInst * SI = dyn_cast<StoreInst>(Inst);
-				if(allocaFlag == true) {
-					// Handle store instructions which are following alloca instructions
-					// Insert store instruction, store copy to malloc address space 
-					StoreInst * mallocStore = new StoreInst(SI->getValueOperand(), malloccall, Inst);
-					Value * mapFrom = SI->getOperand(0);
-					Value * mapTo = malloccall;
+		if(isa<AllocaInst>(Inst)) {
+			// Handle Alloca instructions
+			AllocaInst * AI = dyn_cast<AllocaInst>(Inst);
+			// Get type of alloca inst
+			Type *Ty = AI->getAllocatedType();
+			Type * ITy = Type::getInt32Ty(getGlobalContext());
+			// Get size of alloca inst
+			Constant* AllocSize = ConstantExpr::getSizeOf(Ty);
+			AllocSize = ConstantExpr::getTruncOrBitCast(AllocSize, ITy);
+			// Insert tmp malloc instruction
+			Instruction * Malloc = llvm::CallInst::CreateMalloc(Inst,
+                                         ITy, Ty, AllocSize,
+                                         nullptr, nullptr, "");
+			// Setting flags to handle store instructions later
+			BitCastInst * BI = dyn_cast<BitCastInst>(Malloc);
+			malloccall = BI->getOperand(0);
+			allocaFlag = true;
+		}
+		else if(isa<StoreInst>(Inst)) {
+			// Handle Store instructions
+			StoreInst * SI = dyn_cast<StoreInst>(Inst);
+			if(allocaFlag == true) {
+				// Handle store instructions which are following alloca instructions
+				// Insert store instruction, store copy to malloc address space 
+				StoreInst * mallocStore = new StoreInst(SI->getValueOperand(), malloccall, Inst);
+				Value * mapFrom = SI->getOperand(1);
+				Value * mapTo = malloccall;
 
-					// TODO: call runtime function to map "mapFrom" to "mapTo"
-					// E TODO
+				llvm::errs() << "Type of operand is " << *(mapFrom->getType()) << "\n";
 
-					// Reset flags
-					allocaFlag = false;
-				}
+				// TODO: call runtime function to map "mapFrom" to "mapTo"
+				// E TODO
+
+				// Reset flags
+				allocaFlag = false;
+
+				// Variebles for debugging
+				testFlag = true;
+				testv = mapTo;
 			}
-			NumInstrumented++;
+		}
+		else if(isa<LoadInst>(Inst)) {
+			// Handle Load instructions
+			LoadInst * LI = dyn_cast<LoadInst>(Inst);
+			if(testFlag == true) {
+				// Load value from malloc memory space
+				if(testv == NULL)
+					llvm::errs() << "mapTo is NULL \n";
+				LoadInst * mallocLoad = new LoadInst(testv,LI->getName(),Inst);
+				mallocLoad->setName(LI->getName());
+				LI->removeFromParent();
+				LI->replaceAllUsesWith(mallocLoad);
+			}
+		}
+		NumInstrumented++;
 	}
 
 	/****************************************/
