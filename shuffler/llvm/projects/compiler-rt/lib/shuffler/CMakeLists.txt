@@ -19,7 +19,7 @@ if(APPLE)
 else()
   # Build separate libraries for each target.
   foreach(arch ${CVER_SUPPORTED_ARCH})
-    # Main Cver runtime.
+    # Main Shuffler runtime.
     add_compiler_rt_runtime(clang_rt.shuffler-${arch} ${arch} STATIC
       SOURCES ${SHUFFLER_SOURCES}
       CFLAGS ${SHUFLLER_CFLAGS})

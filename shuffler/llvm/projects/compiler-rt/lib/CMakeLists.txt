@@ -4,6 +4,8 @@
 include(AddCompilerRT)
 include(SanitizerUtils)
 
+add_subdirectory(shuffler)
+
 if(COMPILER_RT_BUILD_BUILTINS)
   add_subdirectory(builtins)
 endif()
