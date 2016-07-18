@@ -34,3 +34,8 @@ Adding compiler-rt files, continuing replacing alloca instructions
 Continuing replacing alloca instructions
 #
 ---
+#### 7/18
+Tested Load from malloc address space
+TODO: call runtime to map from high level pointer to low level pointer (malloccall Value)
+#
+---
