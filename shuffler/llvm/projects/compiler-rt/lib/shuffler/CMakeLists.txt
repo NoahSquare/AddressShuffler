@@ -1,34 +1,46 @@
-add_custom_target(shuffler)
+# AddressShuffler
+TODO: Description
+## Installation
+To build clang/llvm
+> $ make
+## Usage
+To test AddressShuffler
+> $ sh test.sh
 
-set(SHUFFLER_SOURCES
-	shuffler_malloc.cc
-)
+To browse test file
+> $ cat simple_test.c
+## History
+#### 7/7
+Setting up LLVM Pass for the shuffler, Shuffler Pass now will be loaded and run automatically
+##### Modifications
+- Added file llvm/lib/Transforms/Instrumentation/AddressShuffler.cpp
+- Edited file llvm/lib/Transforms/Instrumentation/CMakeLists.txt
+- Edited file llvm/include/llvm/InitializePasses.h
+- Edited file llvm/include/llvm/Transforms/Instrumentation.h
+- Edited file llvm/tools/clang/lib/CodeGen/BackendUtil.cpp
+---
+#### 7/8
+Replacing alloca instructions to malloc
+#
+---
+#### 7/14
+Adding compiler-rt files, continuing replacing alloca instructions
+##### Modifications
+- Edited file llvm/lib/Transforms/Instrumentation/AddressShuffler.cpp
+- Added files under llvm/project/compiler-rt/lib/shuffler
+---
+#### 7/15
+Continuing replacing alloca instructions
+#
+---
+#### 7/18
+Tested Load from malloc address space   
+TODO: Try to setup and insert runtime calls to save map information   
 
-include_directories(..)
-
-set(SHUFFLER_CFLAGS ${SHUFFLER_COMMON_CFLAGS})
-
-if(APPLE)
-  # Build universal binary on APPLE.
-  add_compiler_rt_osx_static_runtime(clang_rt.shuffler_osx
-    ARCH ${CVER_SUPPORTED_ARCH}
-    SOURCES ${SHUFFLER_SOURCES}
-            $<TARGET_OBJECTS:RTShufflerCommon.osx>
-    CFLAGS ${SHUFLLER_CFLAGS})
-  add_dependencies(shuffler clang_rt.shuffler_osx)
-else()
-  # Build separate libraries for each target.
-  foreach(arch ${CVER_SUPPORTED_ARCH})
-    # Main Shuffler runtime.
-    add_compiler_rt_runtime(clang_rt.shuffler-${arch} ${arch} STATIC
-      SOURCES ${SHUFFLER_SOURCES}
-      CFLAGS ${SHUFLLER_CFLAGS})
-    add_dependencies(shuffler
-      clang_rt.shuffer-${arch})
-    if (UNIX AND NOT ${arch} STREQUAL "i386")
-      add_sanitizer_rt_symbols(clang_rt.shuffler-${arch} shuffler.syms.extra)
-      add_dependencies(shuffler
-        clang_rt.shuffler-${arch}-symbols)
-    endif()
-  endforeach()
-endif()
+*Added source directory and files to cmake list and makefile, but still not got compiled; Expected that llvm/project/compiler-rt/lib/shuffler/shuffler_malloc.cc could get compiled*
+##### Modifications
+- Edited file llvm/lib/Transforms/Instrumentation/AddressShuffler.cpp
+- Edited file llvm/project/compiler-rt/lib/CMakeLists.txt
+- Edited file llvm/project/compiler-rt/lib/Makefile.mk   
+#
+---

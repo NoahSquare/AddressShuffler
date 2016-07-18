@@ -1,4 +1,3 @@
-
 # AddressShuffler
 TODO: Description
 ## Installation
@@ -36,6 +35,12 @@ Continuing replacing alloca instructions
 ---
 #### 7/18
 Tested Load from malloc address space   
-TODO: call runtime to map from high level pointer to low level pointer (malloccall Value)
+TODO: Try to setup and insert runtime calls to save map information   
+
+*Added source directory and files to cmake list and makefile, but still not got compiled; Expected that llvm/project/compiler-rt/lib/shuffler/shuffler_malloc.cc could get compiled*
+##### Modifications
+- Edited file llvm/lib/Transforms/Instrumentation/AddressShuffler.cpp
+- Edited file llvm/project/compiler-rt/lib/CMakeLists.txt
+- Edited file llvm/project/compiler-rt/lib/Makefile.mk   
 #
 ---
