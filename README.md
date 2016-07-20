@@ -44,3 +44,11 @@ TODO: Try to setup and insert runtime calls to save map information
 - Edited file llvm/project/compiler-rt/lib/Makefile.mk   
 #
 ---
+#### 7/20
+Files under llvm/project/compiler-rt/lib/shuffler get compiled   
+Added function call follows alloca instructions   
+TODO: Try to link shuffler runtime library to clang
+##### Modifications
+- Edited file llvm/project/compiler-rt/lib/CMakeLists.txt
+- Edited file llvm/lib/Transforms/Instrumentation/AddressShuffler.cpp
+

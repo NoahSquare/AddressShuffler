@@ -137,6 +137,14 @@ bool AddressShuffler::runOnFunction(Function &F) {
 
 			testFlag = true;
 			testv = malloccall;
+
+			LLVMContext& Ctx = F.getContext();
+			Constant* logFunc = F.getParent()->getOrInsertFunction(
+			  "_shuffler_malloc", Type::getVoidTy(Ctx),Type::getInt32Ty(Ctx), NULL);
+			IRBuilder<> builder(Malloc, nullptr, None);
+			builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
+			builder.CreateCall(logFunc,None);
+			llvm::errs() << "\n\nCreated Call !\n\n\n";
 		}
 		else if(isa<StoreInst>(Inst)) {
 
@@ -153,6 +161,7 @@ bool AddressShuffler::runOnFunction(Function &F) {
 				LI->replaceAllUsesWith(mallocLoad);
 			}
 		}
+
 		NumInstrumented++;
 	}
 
