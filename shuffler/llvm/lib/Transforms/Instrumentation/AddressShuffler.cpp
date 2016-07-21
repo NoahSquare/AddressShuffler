@@ -144,7 +144,6 @@ bool AddressShuffler::runOnFunction(Function &F) {
 			IRBuilder<> builder(Malloc, nullptr, None);
 			builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
 			builder.CreateCall(logFunc,None);
-			llvm::errs() << "\n\nCreated Call !\n\n\n";
 		}
 		else if(isa<StoreInst>(Inst)) {
 

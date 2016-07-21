@@ -98,7 +98,7 @@ if(LLVM_BUILD_EXTERNAL_COMPILER_RT AND EXISTS ${COMPILER_RT_SRC_ROOT}/)
                              -P "${CMAKE_BINARY_DIR}/cmake_install.cmake")
 
   # Add top-level targets that build specific compiler-rt runtimes.
-  set(COMPILER_RT_RUNTIMES asan builtins dfsan lsan msan profile tsan ubsan)
+  set(COMPILER_RT_RUNTIMES asan builtins dfsan lsan msan profile tsan ubsan shuffler)
   foreach(runtime ${COMPILER_RT_RUNTIMES})
     get_ext_project_build_command(build_runtime_cmd ${runtime})
     add_custom_target(${runtime}

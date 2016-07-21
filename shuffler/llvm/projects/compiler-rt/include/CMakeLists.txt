@@ -1,4 +1,5 @@
 set(SANITIZER_HEADERS
+  sanitizer/shuffler_malloc.h
   sanitizer/allocator_interface.h
   sanitizer/asan_interface.h
   sanitizer/common_interface_defs.h

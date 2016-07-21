@@ -125,7 +125,7 @@ TryCompile = \
 
 # We try to build 32-bit runtimes both on 32-bit hosts and 64-bit hosts.
 Runtime32BitConfigs = \
-	builtins-i386.a profile-i386.a
+	builtins-i386.a profile-i386.a shuffler-i386.a
 
 # We currently only try to generate runtime libraries on x86.
 ifeq ($(ARCH),x86)
@@ -134,7 +134,7 @@ endif
 
 ifeq ($(ARCH),x86_64)
 RuntimeLibrary.linux.Configs += \
-	builtins-x86_64.a profile-x86_64.a
+	builtins-x86_64.a profile-x86_64.a shuffler-x86_64.a
 # We need to build 32-bit libraries on 64-bit platform, and add them
 # to the list of runtime libraries to make "clang -m32" work.
 # We check that Clang can produce working 32-bit binaries by compiling a simple
