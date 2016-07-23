@@ -51,4 +51,12 @@ TODO: Try to link shuffler runtime library to clang
 ##### Modifications
 - Edited file llvm/project/compiler-rt/lib/CMakeLists.txt
 - Edited file llvm/lib/Transforms/Instrumentation/AddressShuffler.cpp
-
+---
+#### 7/21
+Linked runtime library with clang, runtiem function successfully got called in instrumented program
+TODO: let the runtime function save mapping information
+##### Modifications
+- shuffler/llvm/projects/compiler-rt/include/CMakeLists.txt
+- shuffler/llvm/projects/compiler-rt/lib/shuffler/shuffler_malloc.cc
+- shuffler/llvm/tools/clang/lib/Driver/Tools.cpp
+- shuffler/llvm/tools/clang/runtime/CMakeLists.txt

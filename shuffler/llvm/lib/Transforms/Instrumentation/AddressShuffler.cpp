@@ -140,10 +140,12 @@ bool AddressShuffler::runOnFunction(Function &F) {
 
 			LLVMContext& Ctx = F.getContext();
 			Constant* logFunc = F.getParent()->getOrInsertFunction(
-			  "_shuffler_malloc", Type::getVoidTy(Ctx),Type::getInt32Ty(Ctx), NULL);
+			  "_save_mapping", Type::getVoidTy(Ctx),Type::getInt32Ty(Ctx), NULL);
 			IRBuilder<> builder(Malloc, nullptr, None);
 			builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
-			builder.CreateCall(logFunc,None);
+			//SmallSet<Value *, 16> mapFrom;
+			llvm::errs() << "malloccall type is " << *malloccall->getType() << "\n";
+			builder.CreateCall(logFunc, {malloccall}, "calltmp");
 		}
 		else if(isa<StoreInst>(Inst)) {
 
@@ -158,6 +160,16 @@ bool AddressShuffler::runOnFunction(Function &F) {
 				LoadInst * mallocLoad = new LoadInst(testv,"",Inst);
 				LI->removeFromParent();
 				LI->replaceAllUsesWith(mallocLoad);
+
+				LLVMContext& Ctx = F.getContext();
+				Constant* logFunc = F.getParent()->getOrInsertFunction(
+				  "_load_mapping", Type::getVoidTy(Ctx),Type::getInt32Ty(Ctx), NULL);
+				IRBuilder<> builder(mallocLoad, nullptr, None);
+				builder.SetInsertPoint(mallocLoad->getParent(), ++builder.GetInsertPoint());
+				//SmallSet<Value *, 16> mapFrom;
+				Value * testValue = Inst;
+				builder.CreateCall(logFunc, {testValue}, "rettmp");
+
 			}
 		}
 
