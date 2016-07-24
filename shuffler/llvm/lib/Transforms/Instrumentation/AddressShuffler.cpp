@@ -154,8 +154,11 @@ bool AddressShuffler::runOnFunction(Function &F) {
       // Handle Load instructions
       LoadInst * LI = dyn_cast<LoadInst>(Inst);
       if(testFlag == true) {
-              
         // Debugging Load value from malloc memory space
+        // XXX. you may come up with some other methods than using
+        // testFlag/testv.
+        // XXX. for example, put the metatdata for malloc-ed value, and check
+        // the metadata for this.
         if(testv == NULL)
           llvm::errs() << "mapTo is NULL \n";
         LoadInst * mallocLoad = new LoadInst(testv,"",Inst);
