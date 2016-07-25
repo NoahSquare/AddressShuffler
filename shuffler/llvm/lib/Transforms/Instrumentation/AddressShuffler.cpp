@@ -52,16 +52,16 @@
 using namespace llvm;
 
 namespace {
-	class AddressShuffler : public FunctionPass {
-	 public:
-	  AddressShuffler() : FunctionPass(ID) {}
-	  const char *getPassName() const override { return "AddressShuffler"; }
-	  bool runOnFunction(Function &F) override;
-	  bool doInitialization(Module &M) override;
-	  static char ID;
-	 private:
-	 	uint64_t getAllocaSizeInBytes(AllocaInst *AI);
-	};
+class AddressShuffler : public FunctionPass {
+public:
+  AddressShuffler() : FunctionPass(ID) {}
+  const char *getPassName() const override { return "AddressShuffler"; }
+  bool runOnFunction(Function &F) override;
+  bool doInitialization(Module &M) override;
+  static char ID;
+private:
+  uint64_t getAllocaSizeInBytes(AllocaInst *AI);
+};
 }  // namespace
 
 char AddressShuffler::ID = 0;
@@ -80,16 +80,17 @@ bool AddressShuffler::doInitialization(Module &M) {
 }
 
 void warningMessage() {
-	llvm::errs() << "====================================================\n";
-	llvm::errs() << "-                                                  -\n";
-	llvm::errs() << "-                                                  -\n";
-	llvm::errs() << "-  Important: Compiling with AddressShuffler On!   -\n";
-	llvm::errs() << "-                                                  -\n";
-	llvm::errs() << "-                                                  -\n";
-	llvm::errs() << "====================================================\n";
+  llvm::errs() << "====================================================\n";
+  llvm::errs() << "-                                                  -\n";
+  llvm::errs() << "-                                                  -\n";
+  llvm::errs() << "-  Important: Compiling with AddressShuffler On!   -\n";
+  llvm::errs() << "-                                                  -\n";
+  llvm::errs() << "-                                                  -\n";
+  llvm::errs() << "====================================================\n";
 }
 
 bool AddressShuffler::runOnFunction(Function &F) {
+<<<<<<< HEAD
 	warningMessage();
 	SmallSet<Value *, 16> TempsToInstrument;
 	SmallVector<Instruction *, 16> ToInstrument;
@@ -194,6 +195,106 @@ bool AddressShuffler::runOnFunction(Function &F) {
 	// We want to instrument every address only once per basic block (unless there
 	// are calls between uses).
 	/*
+=======
+  warningMessage();
+  SmallSet<Value *, 16> TempsToInstrument;
+  SmallVector<Instruction *, 16> ToInstrument;
+  for (auto &BB : F) {
+    for (auto &Inst : BB) {
+      ToInstrument.push_back(&Inst);
+    }
+  }
+
+
+  // Maps Alloca Value to an AllocaInst from which the Value is originated.
+  typedef DenseMap<Value *, AllocaInst *> htlMapTy;
+  htlMapTy htlmap;
+
+  int NumInstrumented = 0;
+
+  // Variables for debugging
+  bool testFlag = false;
+  Value * testv = NULL;
+
+  for (auto Inst : ToInstrument) {
+    if(isa<AllocaInst>(Inst)) {
+      // Handle Alloca instructions
+      AllocaInst * AI = dyn_cast<AllocaInst>(Inst);
+      // Get type of alloca inst
+      Type *Ty = AI->getAllocatedType();
+      Type * ITy = Type::getInt32Ty(getGlobalContext());
+      // Get size of alloca inst
+      Constant* AllocSize = ConstantExpr::getSizeOf(Ty);
+      AllocSize = ConstantExpr::getTruncOrBitCast(AllocSize, ITy);
+      // Insert tmp malloc instruction
+      Instruction * Malloc = llvm::CallInst::CreateMalloc(Inst,
+                                                          ITy, Ty, AllocSize,
+                                                          nullptr, nullptr, "");
+
+      AI->replaceAllUsesWith(Malloc);
+      AI->removeFromParent();
+
+      // Setting flags to handle store instructions later
+      BitCastInst * BI = dyn_cast<BitCastInst>(Malloc);
+      Value * malloccall = BI->getOperand(0);
+
+      // S TODO: call runtime function to map High level address to %malloccall
+      // E TODO
+
+      testFlag = true;
+      testv = malloccall;
+
+      LLVMContext& Ctx = F.getContext();
+      Constant* logFunc = F.getParent()->getOrInsertFunction(
+        "_save_mapping", Type::getVoidTy(Ctx),Type::getInt32Ty(Ctx), NULL);
+      IRBuilder<> builder(Malloc, nullptr, None);
+      builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
+      //SmallSet<Value *, 16> mapFrom;
+      llvm::errs() << "malloccall type is " << *malloccall->getType() << "\n";
+      builder.CreateCall(logFunc, {malloccall}, "calltmp");
+    }
+    else if(isa<StoreInst>(Inst)) {
+
+    }
+    else if(isa<LoadInst>(Inst)) {
+      // Handle Load instructions
+      LoadInst * LI = dyn_cast<LoadInst>(Inst);
+      if(testFlag == true) {
+        // Debugging Load value from malloc memory space
+        // XXX. you may come up with some other methods than using
+        // testFlag/testv.
+        // XXX. for example, put the metatdata for malloc-ed value, and check
+        // the metadata for this.
+        if(testv == NULL)
+          llvm::errs() << "mapTo is NULL \n";
+        LoadInst * mallocLoad = new LoadInst(testv,"",Inst);
+        LI->removeFromParent();
+        LI->replaceAllUsesWith(mallocLoad);
+
+        LLVMContext& Ctx = F.getContext();
+        Constant* logFunc = F.getParent()->getOrInsertFunction(
+          "_load_mapping", Type::getVoidTy(Ctx),Type::getInt32Ty(Ctx), NULL);
+        IRBuilder<> builder(mallocLoad, nullptr, None);
+        builder.SetInsertPoint(mallocLoad->getParent(), ++builder.GetInsertPoint());
+        //SmallSet<Value *, 16> mapFrom;
+        Value * testValue = Inst;
+        builder.CreateCall(logFunc, {testValue}, "rettmp");
+
+      }
+    }
+
+    NumInstrumented++;
+  }
+
+  /****************************************/
+  /*										*/
+  /*      Reference code from Asan        */
+  /*										*/
+  /****************************************/
+  // We want to instrument every address only once per basic block (unless there
+  // are calls between uses).
+  /*
+>>>>>>> 77dccc3801a0cf82e18b9206a5a1df5f3121a5f3
 	SmallSet<Value *, 16> TempsToInstrument;
 	SmallVector<Instruction *, 16> ToInstrument;
 	SmallVector<Instruction *, 8> NoReturnCalls;
@@ -205,41 +306,41 @@ bool AddressShuffler::runOnFunction(Function &F) {
 	uint64_t TypeSize;
 
 	for (auto &BB : F) {
-	    AllBlocks.push_back(&BB);
-	    TempsToInstrument.clear();
-	    int NumInsnsPerBB = 0;
-	    for (auto &Inst : BB) {
-	      if (LooksLikeCodeInBug11395(&Inst)) return false;
-	      if (Value *Addr = isInterestingMemoryAccess(&Inst, &IsWrite, &TypeSize,
-	                                                  &Alignment)) {
-	        if (ClOpt && ClOptSameTemp) {
-	          if (!TempsToInstrument.insert(Addr).second)
-	            continue;  // We've seen this temp in the current BB.
-	        }
-	      } else if (ClInvalidPointerPairs &&
-	                 isInterestingPointerComparisonOrSubtraction(&Inst)) {
-	        PointerComparisonsOrSubtracts.push_back(&Inst);
-	        continue;
-	      } else if (isa<MemIntrinsic>(Inst)) {
-	        // ok, take it.
-	      } else {
-	        if (isa<AllocaInst>(Inst)) NumAllocas++;
-	        CallSite CS(&Inst);
-	        if (CS) {
-	          // A call inside BB.
-	          TempsToInstrument.clear();
-	          if (CS.doesNotReturn()) NoReturnCalls.push_back(CS.getInstruction());
-	        }
-	        if (CallInst *CI = dyn_cast<CallInst>(&Inst))
-	          maybeMarkSanitizerLibraryCallNoBuiltin(CI, TLI);
-	        continue;
-	      }
-	      ToInstrument.push_back(&Inst);
-	      NumInsnsPerBB++;
-	      if (NumInsnsPerBB >= ClMaxInsnsToInstrumentPerBB) break;
-	    }
+    AllBlocks.push_back(&BB);
+    TempsToInstrument.clear();
+    int NumInsnsPerBB = 0;
+    for (auto &Inst : BB) {
+    if (LooksLikeCodeInBug11395(&Inst)) return false;
+    if (Value *Addr = isInterestingMemoryAccess(&Inst, &IsWrite, &TypeSize,
+    &Alignment)) {
+    if (ClOpt && ClOptSameTemp) {
+    if (!TempsToInstrument.insert(Addr).second)
+    continue;  // We've seen this temp in the current BB.
+    }
+    } else if (ClInvalidPointerPairs &&
+    isInterestingPointerComparisonOrSubtraction(&Inst)) {
+    PointerComparisonsOrSubtracts.push_back(&Inst);
+    continue;
+    } else if (isa<MemIntrinsic>(Inst)) {
+    // ok, take it.
+    } else {
+    if (isa<AllocaInst>(Inst)) NumAllocas++;
+    CallSite CS(&Inst);
+    if (CS) {
+    // A call inside BB.
+    TempsToInstrument.clear();
+    if (CS.doesNotReturn()) NoReturnCalls.push_back(CS.getInstruction());
+    }
+    if (CallInst *CI = dyn_cast<CallInst>(&Inst))
+    maybeMarkSanitizerLibraryCallNoBuiltin(CI, TLI);
+    continue;
+    }
+    ToInstrument.push_back(&Inst);
+    NumInsnsPerBB++;
+    if (NumInsnsPerBB >= ClMaxInsnsToInstrumentPerBB) break;
+    }
 	}
-	*/
-	return false;
+  */
+  return false;
 }
 
