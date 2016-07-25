@@ -60,3 +60,9 @@ TODO: let the runtime function save mapping information
 - shuffler/llvm/projects/compiler-rt/lib/shuffler/shuffler_malloc.cc
 - shuffler/llvm/tools/clang/lib/Driver/Tools.cpp
 - shuffler/llvm/tools/clang/runtime/CMakeLists.txt
+- ---
+#### 7/25
+- Trying to figure out a way to save/load address to/from runtime;
+- Tried a procedure that reserves memory at compiling time and writes to the reserved memory at runtime, but didn't work(runtime seg fault);
+- Asan uses shift instead of mapping, I may need to use a similar way to init "shadow memory" at startup used to store mapping information.
+---

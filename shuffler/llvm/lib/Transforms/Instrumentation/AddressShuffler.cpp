@@ -109,6 +109,7 @@ bool AddressShuffler::runOnFunction(Function &F) {
 	// Variables for debugging
 	bool testFlag = false;
 	Value * testv = NULL;
+	Type * ptrTy = NULL;
 
 	for (auto Inst : ToInstrument) {
 		if(isa<AllocaInst>(Inst)) {
@@ -132,25 +133,35 @@ bool AddressShuffler::runOnFunction(Function &F) {
 			BitCastInst * BI = dyn_cast<BitCastInst>(Malloc);
 			Value * malloccall = BI->getOperand(0);
 
-			// S TODO: call runtime function to map High level address to %malloccall
-			// E TODO
-
 			testFlag = true;
 			testv = malloccall;
 
 			LLVMContext& Ctx = F.getContext();
-			Constant* logFunc = F.getParent()->getOrInsertFunction(
+			Constant* saveFunc = F.getParent()->getOrInsertFunction(
 			  "_save_mapping", Type::getVoidTy(Ctx),Type::getInt32Ty(Ctx), NULL);
 			IRBuilder<> builder(Malloc, nullptr, None);
 			builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
 			//SmallSet<Value *, 16> mapFrom;
-			llvm::errs() << "malloccall type is " << *malloccall->getType() << "\n";
-			builder.CreateCall(logFunc, {malloccall}, "calltmp");
+			ptrTy = malloccall->getType();
+			llvm::errs() << "malloccall type is " << *ptrTy << "\n";
+			//builder.CreateCall(saveFunc, {malloccall}, "calltmp");
 		}
 		else if(isa<StoreInst>(Inst)) {
 
 		}
 		else if(isa<LoadInst>(Inst)) {
+			LLVMContext& Ctx = F.getContext();
+
+			/*
+			Constant* tmpAddr = ConstantInt::get(Type::getInt32Ty(Ctx), 0x1234);
+			Value* tmpValue = ConstantExpr::getIntToPtr(
+			    tmpAddr , PointerType::getUnqual(Type::getInt32Ty(Ctx)));
+
+			Constant* newAddr = ConstantInt::get(Type::getInt32Ty(Ctx), (uint64_t)tmpValue);
+			Value* newValue = ConstantExpr::getIntToPtr(
+			    newAddr , PointerType::getUnqual(Type::getInt32Ty(Ctx)));
+			    */
+
 			// Handle Load instructions
 			LoadInst * LI = dyn_cast<LoadInst>(Inst);
 			if(testFlag == true) {
@@ -158,17 +169,16 @@ bool AddressShuffler::runOnFunction(Function &F) {
 				if(testv == NULL)
 					llvm::errs() << "mapTo is NULL \n";
 				LoadInst * mallocLoad = new LoadInst(testv,"",Inst);
+				//LoadInst * mallocLoad = new LoadInst(newValue,"",Inst);
+
 				LI->removeFromParent();
 				LI->replaceAllUsesWith(mallocLoad);
 
-				LLVMContext& Ctx = F.getContext();
-				Constant* logFunc = F.getParent()->getOrInsertFunction(
+				Constant* loadFunc = F.getParent()->getOrInsertFunction(
 				  "_load_mapping", Type::getVoidTy(Ctx),Type::getInt32Ty(Ctx), NULL);
 				IRBuilder<> builder(mallocLoad, nullptr, None);
-				builder.SetInsertPoint(mallocLoad->getParent(), ++builder.GetInsertPoint());
-				//SmallSet<Value *, 16> mapFrom;
-				Value * testValue = Inst;
-				builder.CreateCall(logFunc, {testValue}, "rettmp");
+				builder.SetInsertPoint(mallocLoad->getParent(), builder.GetInsertPoint());
+				//builder.CreateCall(loadFunc, {newValue}, "rettmp");
 
 			}
 		}
