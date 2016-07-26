@@ -6,30 +6,36 @@
 
 typedef uintptr_t   uptr;
 
-uptr * tmp;
-void * baseptr;
-void * ptr = malloc(32);
+uptr ptr = 0;
 
-extern "C" void _save_mapping(void * v) {
+struct map_info {
+	uptr mapFrom;
+	uptr mapTo;
+	int size;
+};
+
+// For Debugging purpose
+struct map_info tmp;
+
+extern "C" void _save_mapping(uptr mapFrom, uptr mapTo, int size) {
 	printf("Running _save_mapping\n");
+	printf(" mapping from %x\n", mapFrom);
+	printf(" mapping to %x\n", mapTo);
+	printf(" mapping size %x\n", size);
 
-	int * addr = (int *)v;
-	printf("*v = %d // this should be 5 if value from program is taken\n", *addr);
-
-	int a = 2;
-	memcpy(ptr, &a, sizeof(int));
+	// TODO: Save mapping info to lookup table
+	memcpy(&tmp.mapFrom, &mapFrom, sizeof(uptr));
+	memcpy(&tmp.mapTo, &mapTo, sizeof(uptr));
+	memcpy(&tmp.size, &size, sizeof(size));
 }
 
-extern "C" void _load_mapping(void * ret) {
+extern "C" void _load_mapping(uptr mapFrom, void * load_ptr) {
 	printf("Running _load_mapping\n");
-	memcpy(ret, ptr, sizeof(int));
-	printf("The program outputs 2 for now if _load_mapping loads _save_mapping saved value\n");
+	printf(" looking up for mapFrom %x\n", mapFrom);
+	// TODO: Look up for mapFrom
+	memcpy(load_ptr, &tmp.mapTo, 4/*size*/);
 }
 
 extern "C" void _shuffler_init() {
-	//baseptr = malloc(32);
-	char * c = (char *)ptr;
-	int i = 0;
-	for(;i<32; i++)
-		c[i] = 0;
+	// TODO: Setup lookup table
 }

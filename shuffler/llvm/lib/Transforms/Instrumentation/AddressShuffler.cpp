@@ -114,7 +114,6 @@ bool AddressShuffler::runOnFunction(Function &F) {
 	int init_flag = 0;
 
 	for (auto Inst : ToInstrument) {
-		/*
 		if(init_flag == 0) {
 
 			// Initialize Shuffler
@@ -124,7 +123,7 @@ bool AddressShuffler::runOnFunction(Function &F) {
 			//IRB.SetInsertPoint(Inst->getParent(), IRB.GetInsertPoint());
 			IRB.CreateCall(initFunc, {}, "");
 			init_flag = 1;
-		}*/
+		}
 
 
 		if(isa<AllocaInst>(Inst)) {
@@ -140,30 +139,33 @@ bool AddressShuffler::runOnFunction(Function &F) {
                                          IntptrTy, Ty, AllocSize,
                                          nullptr, nullptr, "");
 
-			AI->replaceAllUsesWith(Malloc);
-			AI->removeFromParent();
-
 			Constant* saveFunc = F.getParent()->getOrInsertFunction(
 			  "_save_mapping", Type::getVoidTy(Ctx),IntptrTy, NULL);
 			IRBuilder<> builder(Malloc, nullptr, None);
 			// Insert after Store Instruction
 			builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
 
-			builder.CreateCall(saveFunc, {builder.CreatePtrToInt(Malloc, IntptrTy)}, "calltmp");
+			builder.CreateCall(saveFunc, { builder.CreatePtrToInt(AI, IntptrTy)/*mapFrom*/, builder.CreatePtrToInt(Malloc, IntptrTy)/*mapTo*/, AllocSize/*size*/ }, "savetmp");
+
+			//AI->replaceAllUsesWith(Malloc);
+			AI->removeFromParent();
 		}
 		else if(isa<StoreInst>(Inst)) {
+			StoreInst * SI = dyn_cast<StoreInst>(Inst);
+			Value * value = SI -> getValueOperand();
 
+			Constant* loadFunc = F.getParent()->getOrInsertFunction(
+			  "_load_mapping", Type::getVoidTy(Ctx),IntptrTy, NULL);
+			IRBuilder<> builder(SI, nullptr, None);
+			DynamicAllocaLayout = builder.CreateAlloca(IntptrTy, nullptr);
+			builder.CreateCall(loadFunc, { SI -> getPointerOperand()/*mapFrom*/, DynamicAllocaLayout}, "storetmp");
+			Value * tmpLoad = builder.CreateLoad(DynamicAllocaLayout);
+			Type * IntptrPtrTy = PointerType::get(IntptrTy, 0);
+			StoreInst * newStore = builder.CreateStore(value, builder.CreateIntToPtr(tmpLoad, IntptrPtrTy));
+
+			SI->removeFromParent();
 		}
 		else if(isa<LoadInst>(Inst)) {
-			/*
-			Constant* tmpAddr = ConstantInt::get(Type::getInt32Ty(Ctx), 0x1234);
-			Value* tmpValue = ConstantExpr::getIntToPtr(
-			    tmpAddr , PointerType::getUnqual(Type::getInt32Ty(Ctx)));
-
-			Constant* newAddr = ConstantInt::get(Type::getInt32Ty(Ctx), (uint64_t)tmpValue);
-			Value* newValue = ConstantExpr::getIntToPtr(
-			    newAddr , PointerType::getUnqual(Type::getInt32Ty(Ctx)));
-			    */
 
 			// Handle Load instructions
 			LoadInst * LI = dyn_cast<LoadInst>(Inst);
@@ -174,18 +176,14 @@ bool AddressShuffler::runOnFunction(Function &F) {
 			IRBuilder<> builder(LI, nullptr, None);
 			// Insert before Load instruction
 			builder.SetInsertPoint(LI->getParent(), ++builder.GetInsertPoint());
-			//builder.CreateCall(loadFunc, {newValue}, "rettmp");
-			builder.SetInsertPoint(LI->getParent(), --builder.GetInsertPoint());
 			DynamicAllocaLayout = builder.CreateAlloca(IntptrTy, nullptr);
-			builder.CreateCall(loadFunc,
-               {DynamicAllocaLayout}, "rettmp");
-			//builder.CreateLoad(DynamicAllocaLayout);
+			builder.CreateCall(loadFunc, { LI -> getPointerOperand()/*mapFrom*/, DynamicAllocaLayout}, "loadtmp");
+			Value * tmpLoad = builder.CreateLoad(DynamicAllocaLayout);
+			Type * IntptrPtrTy = PointerType::get(IntptrTy, 0);
+			LoadInst * mallocLoad = builder.CreateLoad(builder.CreateIntToPtr(tmpLoad, IntptrPtrTy));
 
-			LoadInst * mallocLoad = new LoadInst(DynamicAllocaLayout,"",Inst);
-
-			LI->removeFromParent();
 			LI->replaceAllUsesWith(mallocLoad);
-
+			LI->removeFromParent();
 		}
 
 		NumInstrumented++;

@@ -65,6 +65,6 @@ TODO: let the runtime function save mapping information
 - Trying to figure out a way to save/load address to/from runtime;
 - Tried a procedure that reserves memory at compiling time and writes to the reserved memory at runtime, but didn't work(runtime seg fault);
 ##### Update
-- Read Asan and figured out a way to use Dyanmic Alloca to achieve the communication, _save_mapping and _load_mapping communciate correctly, but having trouble with passing address to _save_mapping. It might be type or alignment issue.
-- TODO: solving the problem and setup the mapping table.
+- Read Asan and figured out a way to use Dyanmic Alloca to achieve the communication.
+- TODO: Setup the mapping table.
 ---
