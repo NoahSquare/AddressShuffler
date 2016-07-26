@@ -6,29 +6,30 @@
 
 typedef uintptr_t   uptr;
 
-uptr tmp;
+uptr * tmp;
+void * baseptr;
 void * ptr = malloc(32);
 
 extern "C" void _save_mapping(void * v) {
-	//ptr = malloc(32);
-	memcpy(ptr, v, 32);
-	tmp = reinterpret_cast<uptr>(v);
-	printf("pointer v = %lx\n", tmp);
+	printf("Running _save_mapping\n");
+
+	int * addr = (int *)v;
+	printf("*v = %d // this should be 5 if value from program is taken\n", *addr);
+
+	int a = 2;
+	memcpy(ptr, &a, sizeof(int));
 }
 
-extern "C" void _load_mapping(void ** ret) {
-	tmp = reinterpret_cast<uptr>(*ret);
-	printf("pointer ret = %lx\n", tmp);
-	
-	*ret = malloc(32);
+extern "C" void _load_mapping(void * ret) {
+	printf("Running _load_mapping\n");
+	memcpy(ret, ptr, sizeof(int));
+	printf("The program outputs 2 for now if _load_mapping loads _save_mapping saved value\n");
+}
 
-	printf("flag0\n");
-	memcpy(*ret, ptr, 1);
-	printf("flag1\n");
-
-	//memcpy(ret, tmp, 32);
-	//ret = tmp;
-	//uptr * tmpret = reinterpret_cast<uptr*>(ret);
-	//*tmpret = tmp;
-	//syntax_error, should be detected if get compiled.
+extern "C" void _shuffler_init() {
+	//baseptr = malloc(32);
+	char * c = (char *)ptr;
+	int i = 0;
+	for(;i<32; i++)
+		c[i] = 0;
 }

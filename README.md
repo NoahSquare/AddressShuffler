@@ -53,7 +53,7 @@ TODO: Try to link shuffler runtime library to clang
 - Edited file llvm/lib/Transforms/Instrumentation/AddressShuffler.cpp
 ---
 #### 7/21
-Linked runtime library with clang, runtiem function successfully got called in instrumented program
+Linked runtime library with clang, runtiem function successfully got called in instrumented program   
 TODO: let the runtime function save mapping information
 ##### Modifications
 - shuffler/llvm/projects/compiler-rt/include/CMakeLists.txt
@@ -64,5 +64,7 @@ TODO: let the runtime function save mapping information
 #### 7/25
 - Trying to figure out a way to save/load address to/from runtime;
 - Tried a procedure that reserves memory at compiling time and writes to the reserved memory at runtime, but didn't work(runtime seg fault);
-- Asan uses shift instead of mapping, I may need to use a similar way to init "shadow memory" at startup used to store mapping information.
+##### Update
+- Read Asan and figured out a way to use Dyanmic Alloca to achieve the communication, _save_mapping and _load_mapping communciate correctly, but having trouble with passing address to _save_mapping. It might be type or alignment issue.
+- TODO: solving the problem and setup the mapping table.
 ---
