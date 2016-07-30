@@ -2,7 +2,7 @@ add_custom_target(shuffler)
 
 set(SHUFFLER_SOURCES
 	shuffler_malloc.cc
-  shuffler_map.cc
+  shuffler_map.h
 )
 
 include_directories(..)

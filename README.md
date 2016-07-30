@@ -68,3 +68,8 @@ TODO: let the runtime function save mapping information
 - Read Asan and figured out a way to use Dyanmic Alloca to achieve the communication.
 - TODO: Setup the mapping table.
 ---
+#### 7/30
+- Setting up hashmap library
+- Finded a usable hashmap at https://troydhanson.github.io/uthash/, map_info structure now can added/found to/from hashmap.    
+- TODO: hashmap functions need to modify a bit to fit our structure (int->uptr)
+---
