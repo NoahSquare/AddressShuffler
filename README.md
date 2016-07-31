@@ -71,5 +71,11 @@ TODO: let the runtime function save mapping information
 #### 7/30
 - Setting up hashmap library
 - Finded a usable hashmap at https://troydhanson.github.io/uthash/, map_info structure now can added/found to/from hashmap.    
-- TODO: hashmap functions need to modify a bit to fit our structure (int->uptr)
+- TODO: insert realocation instructions to achieve shuffling
+---
+#### 7/31
+- Working on reallocation: load instruction now allocates new address space per access and update mapping information
+- Question 1: Whether store instruction needs realocation? Assuming that if a store instruction is unused(which never gets loaded), then there's no potential threat if its address is not shuffled?
+- Question 2: Malloc calls always get predictable new address from old address.
+- TODO: handle array allocations, use Asan as reference
 ---
