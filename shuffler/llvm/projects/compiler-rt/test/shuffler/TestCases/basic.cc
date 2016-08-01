@@ -11,4 +11,5 @@ int main() {
   printf("b = %d\n", b);
   a++;
   printf("a++ = %d\n", a);
+  // CHECK: Shuffler translated xxx -> yyy
 }
