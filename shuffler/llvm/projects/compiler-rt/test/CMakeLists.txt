@@ -36,6 +36,9 @@ endif()
 # Run sanitizer tests only if we're sure that clang would produce
 # working binaries.
 if(COMPILER_RT_CAN_EXECUTE_TESTS)
+  # XXX. Need to have something similar COMPILER_RT_HAS_SHUFFLER
+  add_subdirectory(shuffler)
+
   if(COMPILER_RT_HAS_ASAN)
     add_subdirectory(asan)
   endif()
