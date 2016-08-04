@@ -82,6 +82,7 @@ def m_Group               : OptionGroup<"<m group>">, Group<CompileOnly_Group>;
 // Feature groups - these take command line options that correspond directly to
 // target specific features and can be translated directly from command line
 // options.
+
 def m_x86_Features_Group : OptionGroup<"<x86 features group>">,
                            Group<m_Group>,
                            Flags<[CoreOption]>;
@@ -632,6 +633,7 @@ def fsanitize_undefined_trap_on_error : Flag<["-"], "fsanitize-undefined-trap-on
                                         Group<f_clang_Group>;
 def fno_sanitize_undefined_trap_on_error : Flag<["-"], "fno-sanitize-undefined-trap-on-error">,
                                            Group<f_clang_Group>;
+
 def fsanitize_link_cxx_runtime : Flag<["-"], "fsanitize-link-c++-runtime">,
                                  Group<f_clang_Group>;
 def fsanitize_cfi_cross_dso : Flag<["-"], "fsanitize-cfi-cross-dso">,
@@ -1169,6 +1171,11 @@ def gdwarf_5 : Flag<["-"], "gdwarf-5">, Group<g_Group>,
 def gcodeview : Flag<["-"], "gcodeview">,
   HelpText<"Generate CodeView debug information">,
   Flags<[CC1Option, CC1AsOption, CoreOption]>;
+
+def shuffler : Flag<["-"], "shuffler">,
+  HelpText<"Compile in Address Shuffler mode">,
+  Flags<[CC1Option, CC1AsOption, CoreOption]>;
+
 // Equivalent to our default dwarf version. Forces usual dwarf emission when
 // CodeView is enabled.
 def gdwarf : Flag<["-"], "gdwarf">, Alias<gdwarf_4>, Flags<[CoreOption]>;
@@ -2126,7 +2133,6 @@ defm sign_zero : BooleanFFlag<"sign-zero">, Group<gfortran_Group>;
 defm stack_arrays : BooleanFFlag<"stack-arrays">, Group<gfortran_Group>;
 defm underscoring : BooleanFFlag<"underscoring">, Group<gfortran_Group>;
 defm whole_file : BooleanFFlag<"whole-file">, Group<gfortran_Group>;
-
 
 include "CC1Options.td"
 

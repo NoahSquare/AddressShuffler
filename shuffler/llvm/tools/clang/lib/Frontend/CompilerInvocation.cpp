@@ -44,6 +44,7 @@
 #include <memory>
 #include <sys/stat.h>
 #include <system_error>
+#include <stdio.h>
 using namespace clang;
 
 //===----------------------------------------------------------------------===//
@@ -438,6 +439,10 @@ static bool ParseCodeGenArgs(CodeGenOptions &Opts, ArgList &Args, InputKind IK,
     else
       Opts.setDebuggerTuning(static_cast<CodeGenOptions::DebuggerKind>(Val));
   }
+
+  Opts.Shuffler = Args.hasArg(OPT_shuffler);
+  //printf("CodeGen Opt Has Arg = %d\n", Args.hasArg(OPT_shuffler));
+
   Opts.DwarfVersion = getLastArgIntValue(Args, OPT_dwarf_version_EQ, 0, Diags);
   Opts.DebugColumnInfo = Args.hasArg(OPT_dwarf_column_info);
   Opts.EmitCodeView = Args.hasArg(OPT_gcodeview);
@@ -486,6 +491,7 @@ static bool ParseCodeGenArgs(CodeGenOptions &Opts, ArgList &Args, InputKind IK,
   Opts.DumpCoverageMapping = Args.hasArg(OPT_dump_coverage_mapping);
   Opts.AsmVerbose = Args.hasArg(OPT_masm_verbose);
   Opts.ObjCAutoRefCountExceptions = Args.hasArg(OPT_fobjc_arc_exceptions);
+  //printf("Has Exception = %d\n", Args.hasArg(OPT_fobjc_arc_exceptions));
   Opts.CXAAtExit = !Args.hasArg(OPT_fno_use_cxa_atexit);
   Opts.CXXCtorDtorAliases = Args.hasArg(OPT_mconstructor_aliases);
   Opts.CodeModel = getCodeModel(Args, Diags);
@@ -579,6 +585,7 @@ static bool ParseCodeGenArgs(CodeGenOptions &Opts, ArgList &Args, InputKind IK,
   Opts.DisableGCov = Args.hasArg(OPT_test_coverage);
   Opts.EmitGcovArcs = Args.hasArg(OPT_femit_coverage_data);
   Opts.EmitGcovNotes = Args.hasArg(OPT_femit_coverage_notes);
+
   if (Opts.EmitGcovArcs || Opts.EmitGcovNotes) {
     Opts.CoverageFile = Args.getLastArgValue(OPT_coverage_file);
     Opts.CoverageExtraChecksum = Args.hasArg(OPT_coverage_cfg_checksum);
@@ -1503,6 +1510,9 @@ static void ParseLangArgs(LangOptions &Opts, ArgList &Args, InputKind IK,
   // name, as it doesn't seem a useful distinction.
   Opts.GNUKeywords = Args.hasFlag(OPT_fgnu_keywords, OPT_fno_gnu_keywords,
                                   Opts.GNUKeywords);
+
+  if (Args.hasArg(OPT_shuffler))
+    Opts.Shuffler = 1;
 
   if (Args.hasArg(OPT_fno_operator_names))
     Opts.CXXOperatorNames = 0;

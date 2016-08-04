@@ -101,15 +101,13 @@ bool AddressShuffler::runOnFunction(Function &F) {
   AllocaInst *DynamicAllocaLayout = nullptr;
 
   for (auto &BB : F) {
+  	llvm::errs() << "\n";
     for (auto &Inst : BB) {
+    	Inst.print(errs());
+    	llvm::errs() << "\n";
       ToInstrument.push_back(&Inst);
     }
   }
-
-
-  // Maps Alloca Value to an AllocaInst from which the Value is originated.
-  typedef DenseMap<Value *, AllocaInst *> htlMapTy;
-    htlMapTy htlmap;
 
   int NumInstrumented = 0;
   int init_flag = 0;
@@ -127,6 +125,9 @@ bool AddressShuffler::runOnFunction(Function &F) {
 
 
     if(isa<AllocaInst>(Inst)) {
+    	llvm::errs() << "S Alloca\n";
+    	Inst->print(errs());
+    	llvm::errs() << "\n";
       // Handle Alloca instructions
       AllocaInst * AI = dyn_cast<AllocaInst>(Inst);
       // Get type of alloca inst
@@ -149,8 +150,12 @@ bool AddressShuffler::runOnFunction(Function &F) {
 
       //AI->replaceAllUsesWith(Malloc);
       AI->removeFromParent();
+      llvm::errs() << "E Alloca\n";
     }
     else if(isa<StoreInst>(Inst)) {
+    	llvm::errs() << "S Store\n";
+    	Inst->print(errs());
+    	llvm::errs() << "\n";
       StoreInst * SI = dyn_cast<StoreInst>(Inst);
       Value * value = SI -> getValueOperand();
 
@@ -161,11 +166,18 @@ bool AddressShuffler::runOnFunction(Function &F) {
       builder.CreateCall(loadFunc, { SI -> getPointerOperand()/*mapFrom*/, DynamicAllocaLayout}, "storetmp");
       Value * tmpLoad = builder.CreateLoad(DynamicAllocaLayout);
       StoreInst * newStore = builder.CreateStore(value, builder.CreateIntToPtr(tmpLoad, IntptrPtrTy));
+      newStore->setAlignment(SI->getAlignment());
 
+      llvm::errs() << "PointerOperand:" << SI -> getPointerOperand()->getName() << "\n";
+      
       // Remove SI instruction
       SI->removeFromParent();
+      llvm::errs() << "E Store\n";
     }
     else if(isa<LoadInst>(Inst)) {
+    	llvm::errs() << "S Load\n";
+    	Inst->print(errs());
+    	llvm::errs() << "\n";
       // Handle Load instructions
       LoadInst * LI = dyn_cast<LoadInst>(Inst);
       // Debugging Load value from malloc memory space
@@ -201,65 +213,11 @@ bool AddressShuffler::runOnFunction(Function &F) {
       // Remove LI instruction
       LI->replaceAllUsesWith(mallocLoad);
       LI->removeFromParent();
+      llvm::errs() << "E Load\n";
     }
 
     NumInstrumented++;
   }
 
-  /****************************************/
-  /*                    */
-  /*      Reference code from Asan        */
-  /*                    */
-  /****************************************/
-  // We want to instrument every address only once per basic block (unless there
-  // are calls between uses).
-  /*
-  SmallSet<Value *, 16> TempsToInstrument;
-  SmallVector<Instruction *, 16> ToInstrument;
-  SmallVector<Instruction *, 8> NoReturnCalls;
-  SmallVector<BasicBlock *, 16> AllBlocks;
-  SmallVector<Instruction *, 16> PointerComparisonsOrSubtracts;
-  int NumAllocas = 0;
-  bool IsWrite;
-  unsigned Alignment;
-  uint64_t TypeSize;
-
-  for (auto &BB : F) {
-      AllBlocks.push_back(&BB);
-      TempsToInstrument.clear();
-      int NumInsnsPerBB = 0;
-      for (auto &Inst : BB) {
-        if (LooksLikeCodeInBug11395(&Inst)) return false;
-        if (Value *Addr = isInterestingMemoryAccess(&Inst, &IsWrite, &TypeSize,
-                                                    &Alignment)) {
-          if (ClOpt && ClOptSameTemp) {
-            if (!TempsToInstrument.insert(Addr).second)
-              continue;  // We've seen this temp in the current BB.
-          }
-        } else if (ClInvalidPointerPairs &&
-                   isInterestingPointerComparisonOrSubtraction(&Inst)) {
-          PointerComparisonsOrSubtracts.push_back(&Inst);
-          continue;
-        } else if (isa<MemIntrinsic>(Inst)) {
-          // ok, take it.
-        } else {
-          if (isa<AllocaInst>(Inst)) NumAllocas++;
-          CallSite CS(&Inst);
-          if (CS) {
-            // A call inside BB.
-            TempsToInstrument.clear();
-            if (CS.doesNotReturn()) NoReturnCalls.push_back(CS.getInstruction());
-          }
-          if (CallInst *CI = dyn_cast<CallInst>(&Inst))
-            maybeMarkSanitizerLibraryCallNoBuiltin(CI, TLI);
-          continue;
-        }
-        ToInstrument.push_back(&Inst);
-        NumInsnsPerBB++;
-        if (NumInsnsPerBB >= ClMaxInsnsToInstrumentPerBB) break;
-      }
-  }
-  */
   return false;
 }
-

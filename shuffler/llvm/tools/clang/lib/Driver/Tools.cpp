@@ -4137,6 +4137,9 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
     DwarfVersion = getToolChain().GetDefaultDwarfVersion();
   }
 
+  if (Args.hasArg(options::OPT_shuffler))
+    CmdArgs.push_back("-shuffler");
+
   // We ignore flags -gstrict-dwarf and -grecord-gcc-switches for now.
   Args.ClaimAllArgs(options::OPT_g_flags_Group);
 

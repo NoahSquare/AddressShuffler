@@ -345,7 +345,8 @@ void EmitAssemblyHelper::CreatePasses(FunctionInfoIndex *FunctionIndex) {
   PMBuilder.addExtension(PassManagerBuilder::EP_EarlyAsPossible,
                          addAddDiscriminatorsPass);
 
-  PMBuilder.addExtension(PassManagerBuilder::EP_EarlyAsPossible,
+  if (CodeGenOpts.Shuffler || LangOpts.Shuffler)
+    PMBuilder.addExtension(PassManagerBuilder::EP_EarlyAsPossible,
                          addAddressShufflerPass);
 
   // In ObjC ARC mode, add the main ARC optimization passes.

@@ -79,3 +79,7 @@ TODO: let the runtime function save mapping information
 - Question 2: Malloc calls always get predictable new address from old address.
 - TODO: handle array allocations, use Asan as reference
 ---
+#### 8/4
+- Added shuffler enable flag "-shuffler"
+#
+---
