@@ -99,12 +99,10 @@ bool AddressShuffler::runOnFunction(Function &F) {
   SmallSet<Value *, 16> TempsToInstrument;
   SmallVector<Instruction *, 16> ToInstrument;
   AllocaInst *DynamicAllocaLayout = nullptr;
+  Value * zero = ConstantInt::get(Type::getInt32Ty(Ctx), 0);
 
   for (auto &BB : F) {
-  	llvm::errs() << "\n";
-    for (auto &Inst : BB) {
-    	Inst.print(errs());
-    	llvm::errs() << "\n";
+    for (auto &Inst : BB) {;
       ToInstrument.push_back(&Inst);
     }
   }
@@ -123,11 +121,7 @@ bool AddressShuffler::runOnFunction(Function &F) {
       init_flag = 1;
     }
 
-
     if(isa<AllocaInst>(Inst)) {
-    	llvm::errs() << "S Alloca\n";
-    	Inst->print(errs());
-    	llvm::errs() << "\n";
       // Handle Alloca instructions
       AllocaInst * AI = dyn_cast<AllocaInst>(Inst);
       // Get type of alloca inst
@@ -135,6 +129,24 @@ bool AddressShuffler::runOnFunction(Function &F) {
       // Get size of alloca inst
       Constant* AllocSize = ConstantExpr::getSizeOf(Ty);
       AllocSize = ConstantExpr::getTruncOrBitCast(AllocSize, IntptrTy);
+
+      // TODO: Identify array allocation
+      llvm::errs() << "Instruction: ";
+      Inst->print(errs()); // print instruction for debugging
+      errs() << "\n";
+      uint64_t SizeInBytes = AI->getModule()->getDataLayout().getTypeStoreSize(Ty);
+      llvm::errs() << "\tIsArrayAlloc = " << AI->isArrayAllocation() << " \t// should be true\n";
+      llvm::errs() << "\tArraySize = " << SizeInBytes << "  \t// should be 32\n";
+      const ConstantInt *CI = dyn_cast<ConstantInt>(AI->getArraySize());
+      llvm::errs() << "\tNumber of elements = " << CI->getZExtValue() << "  \t// should be 8\n";
+      // E TODO
+
+      // Handle array allocation
+      if (AI->isArrayAllocation()) {
+        //const ConstantInt *CI = dyn_cast<ConstantInt>(AI->getArraySize());
+        assert(CI && "non-constant array size");
+        //llvm::errs() << "ArraySize = " << CI->getZExtValue() << "\n";
+      }
       // Insert tmp malloc instruction
       Instruction * Malloc = llvm::CallInst::CreateMalloc(Inst,
                                          IntptrTy, Ty, AllocSize,
@@ -146,48 +158,41 @@ bool AddressShuffler::runOnFunction(Function &F) {
       // Insert after Store Instruction
       builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
 
-      builder.CreateCall(saveFunc, { builder.CreatePtrToInt(AI, IntptrTy)/*mapFrom*/, builder.CreatePtrToInt(Malloc, IntptrTy)/*mapTo*/, AllocSize/*size*/ }, "savetmp");
+      // TODO: change zero to index
+      builder.CreateCall(saveFunc, { builder.CreatePtrToInt(AI, IntptrTy)/*mapFrom*/, builder.CreatePtrToInt(Malloc, IntptrTy)/*mapTo*/, zero/*index*/ }, "savetmp");
 
       //AI->replaceAllUsesWith(Malloc);
       AI->removeFromParent();
-      llvm::errs() << "E Alloca\n";
     }
     else if(isa<StoreInst>(Inst)) {
-    	llvm::errs() << "S Store\n";
-    	Inst->print(errs());
-    	llvm::errs() << "\n";
+      // Handle Store instructions
       StoreInst * SI = dyn_cast<StoreInst>(Inst);
       Value * value = SI -> getValueOperand();
-
       Constant* loadFunc = F.getParent()->getOrInsertFunction(
         "_load_mapping", Type::getVoidTy(Ctx),IntptrTy, NULL);
       IRBuilder<> builder(SI, nullptr, None);
       DynamicAllocaLayout = builder.CreateAlloca(IntptrTy, nullptr);
-      builder.CreateCall(loadFunc, { SI -> getPointerOperand()/*mapFrom*/, DynamicAllocaLayout}, "storetmp");
+      builder.CreateCall(loadFunc, { SI -> getPointerOperand()/*mapFrom*/, DynamicAllocaLayout, zero}, "storetmp");
       Value * tmpLoad = builder.CreateLoad(DynamicAllocaLayout);
       StoreInst * newStore = builder.CreateStore(value, builder.CreateIntToPtr(tmpLoad, IntptrPtrTy));
       newStore->setAlignment(SI->getAlignment());
 
-      llvm::errs() << "PointerOperand:" << SI -> getPointerOperand()->getName() << "\n";
+      //llvm::errs() << "PointerOperand:" << SI -> getPointerOperand()->getName() << "\n";
       
       // Remove SI instruction
       SI->removeFromParent();
-      llvm::errs() << "E Store\n";
     }
     else if(isa<LoadInst>(Inst)) {
-    	llvm::errs() << "S Load\n";
-    	Inst->print(errs());
-    	llvm::errs() << "\n";
       // Handle Load instructions
       LoadInst * LI = dyn_cast<LoadInst>(Inst);
-      // Debugging Load value from malloc memory space
+      // Load value from malloc memory space
       Constant* loadFunc = F.getParent()->getOrInsertFunction(
         "_load_mapping", Type::getVoidTy(Ctx),IntptrTy, NULL);
       IRBuilder<> builder(LI, nullptr, None);
       // Insert before Load instruction
       builder.SetInsertPoint(LI->getParent(), ++builder.GetInsertPoint());
       DynamicAllocaLayout = builder.CreateAlloca(IntptrTy, nullptr);
-      builder.CreateCall(loadFunc, { LI -> getPointerOperand()/*mapFrom*/, DynamicAllocaLayout}, "loadtmp");
+      builder.CreateCall(loadFunc, { LI -> getPointerOperand()/*mapFrom*/, DynamicAllocaLayout, zero}, "loadtmp");
       Value * tmpLoad = builder.CreateLoad(DynamicAllocaLayout);
       LoadInst * mallocLoad = builder.CreateLoad(builder.CreateIntToPtr(tmpLoad, IntptrPtrTy));
 
@@ -213,7 +218,21 @@ bool AddressShuffler::runOnFunction(Function &F) {
       // Remove LI instruction
       LI->replaceAllUsesWith(mallocLoad);
       LI->removeFromParent();
-      llvm::errs() << "E Load\n";
+    }
+    else if (isa<GetElementPtrInst>(Inst)) {
+      // Handle Array Access instructions
+      GetElementPtrInst * EI = dyn_cast<GetElementPtrInst>(Inst);
+      Value * index =  dyn_cast<ConstantInt>(EI->getOperand(2));
+      // Load value from malloc memory space
+      Constant* loadFunc = F.getParent()->getOrInsertFunction(
+        "_load_mapping", Type::getVoidTy(Ctx),IntptrTy, NULL);
+      IRBuilder<> builder(EI, nullptr, None);
+      // Insert before Load instruction
+      builder.SetInsertPoint(EI->getParent(), ++builder.GetInsertPoint());
+      DynamicAllocaLayout = builder.CreateAlloca(IntptrTy, nullptr);
+      builder.CreateCall(loadFunc, { EI -> getPointerOperand()/*mapFrom*/, DynamicAllocaLayout, zero}, "arraytmp");
+      Value * tmpLoad = builder.CreateLoad(DynamicAllocaLayout);
+      LoadInst * mallocLoad = builder.CreateLoad(builder.CreateIntToPtr(tmpLoad, IntptrPtrTy));
     }
 
     NumInstrumented++;

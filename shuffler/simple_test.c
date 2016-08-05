@@ -1,12 +1,7 @@
 #include <stdio.h>
 int main() {
-  int a = 5;
-  int b = 10;
-  int c = 'c';
-  printf("a = %d\n", a);
-  printf("a = %d\n", a);
-  printf("c = %c\n", c);
-  printf("b = %d\n", b);
-  a++;
-  printf("a++ = %d\n", a);
+  int a[8];
+  a[0] = 5;
+  //printf("a[0] = %d\n", a[0]);
+  //printf("a[0] = %d\n", a[0]);
 }

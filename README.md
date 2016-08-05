@@ -83,3 +83,7 @@ TODO: let the runtime function save mapping information
 - Added shuffler enable flag "-shuffler"
 #
 ---
+#### 8/5
+- Having trouble with identifying array allocation: AI->isArrayAllocation() returns false on array allocation instructions
+#
+---
