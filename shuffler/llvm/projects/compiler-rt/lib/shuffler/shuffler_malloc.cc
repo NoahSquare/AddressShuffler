@@ -14,19 +14,17 @@ uptr ptr = 0;
 struct map_info {
   uptr mapFrom;
   uptr mapTo;
-  uptr index;
   UT_hash_handle hh;
 };
 
 // For Debugging purpose
 struct map_info tmp;
 
-void add_node(uptr mapFrom, uptr mapTo, uptr index) {
+void add_node(uptr mapFrom, uptr mapTo) {
 struct map_info * s;
   s = (struct map_info *)malloc(sizeof(struct map_info));
   s->mapFrom = mapFrom;
   memcpy(&(s->mapTo), &mapTo, sizeof(uptr));
-  memcpy(&(s->index), &index, sizeof(uptr));
   HASH_ADD_INT( hashmap, mapFrom, s ); 
 }
 
@@ -36,17 +34,15 @@ struct map_info * find_node(uptr mapFrom) {
   return s;
 }
 
-extern "C" void _save_mapping(uptr mapFrom, uptr mapTo, uptr index) {
+extern "C" void _save_mapping(uptr mapFrom, uptr mapTo) {
   printf("Running _save_mapping\n");
   printf(" Saving mapping %x -> %x\n", mapFrom, mapTo);
-  printf(" index = %x\n", index);
-  add_node(mapFrom, mapTo, index);
+  add_node(mapFrom, mapTo);
 }
 
-extern "C" void _load_mapping(uptr mapFrom, void * load_ptr, uptr index) {
+extern "C" void _load_mapping(uptr mapFrom, void * load_ptr) {
   printf("Running _load_mapping\n");
   printf(" Looking for Addr %x\n", mapFrom);
-  printf(" Index = %x\n", index);
   struct map_info * node = find_node(mapFrom);
   printf(" Finded mapping %x -> %x\n", mapFrom, node->mapTo);
   memcpy(load_ptr, &node->mapTo, sizeof(uptr));

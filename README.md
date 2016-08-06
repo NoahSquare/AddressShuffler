@@ -87,3 +87,10 @@ TODO: let the runtime function save mapping information
 - Having trouble with identifying array allocation: AI->isArrayAllocation() returns false on array allocation instructions
 #
 ---
+#### 8/6
+- Found another way to identify array allocation: AI->getAllocatedType()->isArrayTy()
+- Handling array allocation: 
+  - Basic idea is that treating each element in an array as an indevidual variable. 
+  - While an array is allocated, automatically malloc new address space for each element in the array, and save its mapping information meanwhile.
+- TODO: handle global variables
+---
