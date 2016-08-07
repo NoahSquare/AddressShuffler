@@ -98,7 +98,7 @@ TODO: let the runtime function save mapping information
 - TODO: handle global variables
 ---
 #### 8/7
-- Change the mechanism of array allocation: now array will be allocated in a consecutive heap space(array allocation is a bit acomplicated and will be handled later)
+- Change the mechanism of array allocation: now array will be allocated in a consecutive heap space(array reallocation is a bit acomplicated and will be handled later)
 - Do not remove alloca instructions so that high level address is meaningful
 - Remove useless includes
 - Setup Module pass that will handle global variables
