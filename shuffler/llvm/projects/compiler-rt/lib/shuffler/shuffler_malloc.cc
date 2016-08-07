@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <sys/mman.h>
 #include <string.h>
+#include <inttypes.h>
 #include "shuffler_map.h"
 #include "llvm/IR/Value.h"
 #include "llvm/ADT/DenseMap.h"
@@ -59,4 +60,8 @@ extern "C" void _update_mapping(uptr mapFrom, uptr mapTo) {
 extern "C" void _shuffler_init() {
   // TODO: Setup lookup table
   hashmap = NULL;
+}
+
+extern "C" void _shuffler_print(uptr value) {
+  printf(" Shuffler printing %x\n", value);
 }

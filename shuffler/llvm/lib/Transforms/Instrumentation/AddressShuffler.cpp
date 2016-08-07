@@ -1,51 +1,25 @@
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/SmallSet.h"
-#include "llvm/ADT/Statistic.h"
-#include "llvm/ADT/StringExtras.h"
-#include "llvm/ADT/Triple.h"
-#include "llvm/Analysis/MemoryBuiltins.h"
-#include "llvm/Analysis/MemoryDependenceAnalysis.h"
 #include "llvm/Analysis/ValueTracking.h"
 #include "llvm/IR/DataLayout.h"
-#include "llvm/IR/Dominators.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/CallSite.h"
-#include "llvm/IR/DIBuilder.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/IR/InlineAsm.h"
-#include "llvm/IR/InstVisitor.h"
 #include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/MDBuilder.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/ValueMap.h"
 #include "llvm/IR/BasicBlock.h"
-#include "llvm/Support/Process.h"
-#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/DataTypes.h"
-#include "llvm/Support/Endian.h"
-#include "llvm/Support/SwapByteOrder.h"
-#include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Compiler.h"
-#include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Instrumentation.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
-#include "llvm/Transforms/Utils/Local.h"
-#include "llvm/Transforms/Utils/ModuleUtils.h"
-#include "llvm/Transforms/Utils/ASanStackFrameLayout.h"
-#include "llvm/Transforms/Utils/Cloning.h"
-#include "llvm/Transforms/Utils/PromoteMemToReg.h"
-#include "llvm/Transforms/Scalar.h"
-#include "llvm/Analysis/TargetLibraryInfo.h"
-#include "llvm/MC/MCSectionMachO.h"
+
 #include <algorithm>
 #include <system_error>
 
@@ -130,35 +104,29 @@ bool AddressShuffler::runOnFunction(Function &F) {
       AllocSize = ConstantExpr::getTruncOrBitCast(AllocSize, IntptrTy);
 
       // Handle array allocation
-      // Basic idea is that treating each element in an array as an indevidual
-      // variable.
-      // While an array is allocated, automatically malloc new address space
-      // for each element in the array, and save its mapping information
-      // meanwhile.
+      // Now array will be allocated in a consecutive heap space;
+      // Save mapping infromation for each element in the array.
       if (Ty->isArrayTy()) {
         ArrayType * arrayTy = dyn_cast<ArrayType>(Ty);
         uint64_t SizeInBytes = AI->getModule()->getDataLayout().getTypeStoreSize(Ty);
         uint64_t unitSize = SizeInBytes / arrayTy->getNumElements();
-        llvm::errs() << "\tunitsize = " << unitSize << "\n";
 
         uint64_t i = 0;
         Constant* saveFunc = F.getParent()->getOrInsertFunction(
             "_save_mapping", Type::getVoidTy(Ctx),IntptrTy, NULL);
-        for(; i < arrayTy->getNumElements(); i++) {
-          Instruction * Malloc = llvm::CallInst::CreateMalloc(Inst,
+        Instruction * Malloc = llvm::CallInst::CreateMalloc(Inst,
                                          IntptrTy, Ty, AllocSize,
                                          nullptr, nullptr, "");
-          IRBuilder<> builder(Malloc, nullptr, None);
+        IRBuilder<> builder(Malloc, nullptr, None);
+        for(; i < arrayTy->getNumElements(); i++) {
           // Insert after Store Instruction
           builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
           Value * increment = ConstantInt::get(Type::getInt32Ty(Ctx), unitSize*i);
           
-          builder.CreateCall(saveFunc, { builder.CreateAdd(increment, builder.CreatePtrToInt(AI, IntptrTy))/*mapFrom*/, builder.CreatePtrToInt(Malloc, IntptrTy)/*mapTo*/ }, "arrayAllocatmp");
+          builder.CreateCall(saveFunc, { builder.CreateAdd(increment, builder.CreatePtrToInt(AI, IntptrTy))/*mapFrom*/, builder.CreateAdd(increment,builder.CreatePtrToInt(Malloc, IntptrTy))/*mapTo*/ }, "arrayAllocatmp");
         }        
-        AI->removeFromParent();
-      }
-      // E Handle array allocation
-      else {
+        //AI->removeFromParent();
+      } else {
         // Handle non-array allocation
         // Insert tmp malloc instruction
         Instruction * Malloc = llvm::CallInst::CreateMalloc(Inst,
@@ -171,9 +139,8 @@ bool AddressShuffler::runOnFunction(Function &F) {
         // Insert after Store Instruction
         builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
 
-        builder.CreateCall(saveFunc, { builder.CreatePtrToInt(AI, IntptrTy)/*mapFrom*/, builder.CreatePtrToInt(Malloc, IntptrTy)/*mapTo*/ }, "savetmp");
-
-        AI->removeFromParent();
+        builder.CreateCall(saveFunc, { builder.CreatePtrToInt(AI, IntptrTy)/*mapFrom*/, builder.CreatePtrToInt(Malloc, IntptrTy)/*mapTo*/ }, "allocatmp");
+        //AI->removeFromParent();
       }
     }
     else if(isa<StoreInst>(Inst)) {

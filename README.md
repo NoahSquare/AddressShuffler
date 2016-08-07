@@ -94,3 +94,9 @@ TODO: let the runtime function save mapping information
   - While an array is allocated, automatically malloc new address space for each element in the array, and save its mapping information meanwhile.
 - TODO: handle global variables
 ---
+#### 8/7
+- Change the mechanism of array allocation: now array will be allocated in a consecutive heap space
+- Do not remove alloca instructions so that high level address is meaningful
+- Remove useless includes
+- TODO: handle global variables; function callbacks
+---

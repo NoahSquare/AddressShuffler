@@ -7,8 +7,8 @@ int main() {
   a[0] = 2;
   printf("a[0] = %d\n", a[0]);
   printf("a[1] = %d\n", a[1]);
-  int * a;
-  int b = 5;
-  a = &b;
-  printf("a = %d\n", *a);
+  int * m;
+  int n = 5;
+  m = &n;
+  printf("m = %d\n", *m);
 }
