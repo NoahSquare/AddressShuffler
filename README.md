@@ -4,6 +4,9 @@ TODO: Description
 To build clang/llvm
 > $ make
 ## Usage
+To enable shuffler
+> $ ./build/bin/clang -shuffler [file_name]
+
 To test AddressShuffler
 > $ sh test.sh
 
@@ -95,7 +98,7 @@ TODO: let the runtime function save mapping information
 - TODO: handle global variables
 ---
 #### 8/7
-- Change the mechanism of array allocation: now array will be allocated in a consecutive heap space
+- Change the mechanism of array allocation: now array will be allocated in a consecutive heap space(array allocation is a bit acomplicated and will be handled later)
 - Do not remove alloca instructions so that high level address is meaningful
 - Remove useless includes
 - Setup Module pass that will handle global variables
