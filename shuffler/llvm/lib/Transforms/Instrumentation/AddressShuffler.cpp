@@ -36,19 +36,44 @@ namespace {
    private:
     uint64_t getAllocaSizeInBytes(AllocaInst *AI);
   };
+
+  class AddressShufflerModule : public ModulePass {
+   public:
+    AddressShufflerModule() : ModulePass(ID) {}
+    bool runOnModule(Module &M) override;
+    bool doInitialization(Module &M) override;
+    static char ID;  // Pass identification, replacement for typeid
+    const char *getPassName() const override { return "AddressShufflerModule"; }
+  };
 }  // namespace
 
-char AddressShuffler::ID = 0;
 
-INITIALIZE_PASS(AddressShuffler, "shuffler",
+
+char AddressShuffler::ID = 0;
+char AddressShufflerModule::ID = 0;
+
+INITIALIZE_PASS( AddressShuffler, "shuffler",
                 "AddressShuffler: shuffle the address of memory accesses.",
                 false, false);
+
+INITIALIZE_PASS( AddressShufflerModule, "shuffler-module",
+    "AddressShufflerModule: shuffle the address of memory accesses.",
+    false, false);
+
+ModulePass *llvm::createAddressShufflerModulePass() {
+  return new AddressShufflerModule();
+}
 
 FunctionPass *llvm::createAddressShufflerPass() {
   return new AddressShuffler();
 }
 
 bool AddressShuffler::doInitialization(Module &M) {
+  // Do nothing.
+  return true;
+}
+
+bool AddressShufflerModule::doInitialization(Module &M) {
   // Do nothing.
   return true;
 }
@@ -61,6 +86,11 @@ void warningMessage() {
   llvm::errs() << "-                                                  -\n";
   llvm::errs() << "-                                                  -\n";
   llvm::errs() << "====================================================\n";
+}
+
+bool AddressShufflerModule::runOnModule(Module &M) {
+  llvm::errs() << "Running On Module\n";
+  return false;
 }
 
 bool AddressShuffler::runOnFunction(Function &F) {

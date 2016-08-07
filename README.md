@@ -98,5 +98,6 @@ TODO: let the runtime function save mapping information
 - Change the mechanism of array allocation: now array will be allocated in a consecutive heap space
 - Do not remove alloca instructions so that high level address is meaningful
 - Remove useless includes
+- Setup Module pass that will handle global variables
 - TODO: handle global variables; function callbacks
 ---

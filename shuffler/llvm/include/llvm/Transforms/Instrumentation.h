@@ -152,6 +152,7 @@ FunctionPass *createBoundsCheckingPass();
 
 // AddressShuffler
 FunctionPass *createAddressShufflerPass();
+ModulePass *createAddressShufflerModulePass();
 
 /// \brief This pass splits the stack into a safe stack and an unsafe stack to
 /// protect against stack-based overflow vulnerabilities.

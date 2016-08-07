@@ -175,6 +175,7 @@ static void addAddDiscriminatorsPass(const PassManagerBuilder &Builder,
 static void addAddressShufflerPass(const PassManagerBuilder &Builder,
                                      legacy::PassManagerBase &PM) {
   PM.add(createAddressShufflerPass());
+  PM.add(createAddressShufflerModulePass());
 }
 
 static void addBoundsCheckingPass(const PassManagerBuilder &Builder,
