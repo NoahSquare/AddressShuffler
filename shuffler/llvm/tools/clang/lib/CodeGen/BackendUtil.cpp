@@ -175,7 +175,7 @@ static void addAddDiscriminatorsPass(const PassManagerBuilder &Builder,
 static void addAddressShufflerPass(const PassManagerBuilder &Builder,
                                      legacy::PassManagerBase &PM) {
   PM.add(createAddressShufflerPass());
-  PM.add(createAddressShufflerModulePass());
+  //PM.add(createAddressShufflerModulePass());
 }
 
 static void addBoundsCheckingPass(const PassManagerBuilder &Builder,
@@ -346,9 +346,11 @@ void EmitAssemblyHelper::CreatePasses(FunctionInfoIndex *FunctionIndex) {
   PMBuilder.addExtension(PassManagerBuilder::EP_EarlyAsPossible,
                          addAddDiscriminatorsPass);
 
-  if (CodeGenOpts.Shuffler || LangOpts.Shuffler)
+  if (CodeGenOpts.Shuffler || LangOpts.Shuffler) {
     PMBuilder.addExtension(PassManagerBuilder::EP_EarlyAsPossible,
                          addAddressShufflerPass);
+    MPM->add(createAddressShufflerModulePass());
+  }
 
   // In ObjC ARC mode, add the main ARC optimization passes.
   if (LangOpts.ObjCAutoRefCount) {

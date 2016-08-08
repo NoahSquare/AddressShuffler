@@ -46,7 +46,9 @@ extern "C" void _load_mapping(uptr mapFrom, void * load_ptr) {
   printf(" Looking for Addr %x\n", mapFrom);
   struct map_info * node = find_node(mapFrom);
   printf(" Finded mapping %x -> %x\n", mapFrom, node->mapTo);
+  printf(" Copying to %x\n", (uptr)load_ptr);
   memcpy(load_ptr, &node->mapTo, sizeof(uptr));
+  printf(" Finished copying\n");
 }
 
 extern "C" void _update_mapping(uptr mapFrom, uptr mapTo) {
@@ -59,7 +61,7 @@ extern "C" void _update_mapping(uptr mapFrom, uptr mapTo) {
 
 extern "C" void _shuffler_init() {
   // TODO: Setup lookup table
-  hashmap = NULL;
+  //hashmap = NULL;
 }
 
 extern "C" void _shuffler_print(uptr value) {

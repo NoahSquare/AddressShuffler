@@ -50,19 +50,10 @@ namespace {
 
 
 char AddressShuffler::ID = 0;
-char AddressShufflerModule::ID = 0;
 
 INITIALIZE_PASS( AddressShuffler, "shuffler",
                 "AddressShuffler: shuffle the address of memory accesses.",
                 false, false);
-
-INITIALIZE_PASS( AddressShufflerModule, "shuffler-module",
-    "AddressShufflerModule: shuffle the address of memory accesses.",
-    false, false);
-
-ModulePass *llvm::createAddressShufflerModulePass() {
-  return new AddressShufflerModule();
-}
 
 FunctionPass *llvm::createAddressShufflerPass() {
   return new AddressShuffler();
@@ -73,10 +64,6 @@ bool AddressShuffler::doInitialization(Module &M) {
   return true;
 }
 
-bool AddressShufflerModule::doInitialization(Module &M) {
-  // Do nothing.
-  return true;
-}
 
 void warningMessage() {
   llvm::errs() << "====================================================\n";
@@ -88,13 +75,21 @@ void warningMessage() {
   llvm::errs() << "====================================================\n";
 }
 
-bool AddressShufflerModule::runOnModule(Module &M) {
-  llvm::errs() << "Running On Module\n";
-  return false;
+void getGlobalsUsedByFunction(const Function &F, SmallVector<GlobalVariable*, 16> *Globals) {
+  for (auto &BB : F)
+    for (auto &Inst : BB)
+      for (auto &Op : Inst.operands())
+        if (isa<GlobalVariable>(Op)) {
+          GlobalVariable* G = dyn_cast<GlobalVariable>(Op);
+          llvm:errs() << "push back global: " << G->getName() << "\n";
+          Globals->push_back(G);
+        }
 }
 
 bool AddressShuffler::runOnFunction(Function &F) {
+  llvm::errs() << "Instrumenting function " << F.getName() << "\n";
   LLVMContext& Ctx = F.getContext();
+  const DataLayout &DL = F.getParent()->getDataLayout();
   warningMessage();
   int LongSize = F.getParent()->getDataLayout().getPointerSizeInBits();
   //Type * IntptrTy = Type::getIntNTy(Ctx, LongSize);
@@ -103,6 +98,9 @@ bool AddressShuffler::runOnFunction(Function &F) {
   SmallSet<Value *, 16> TempsToInstrument;
   SmallVector<Instruction *, 16> ToInstrument;
   AllocaInst *DynamicAllocaLayout = nullptr;
+
+  //SmallVector<GlobalVariable *, 16> globalvariables;
+  //getGlobalsUsedByFunction(F, &globalvariables);
 
   for (auto &BB : F) {
     for (auto &Inst : BB) {
@@ -121,6 +119,7 @@ bool AddressShuffler::runOnFunction(Function &F) {
       IRBuilder<> IRB(Inst, nullptr, None);
       //IRB.SetInsertPoint(Inst->getParent(), IRB.GetInsertPoint());
       IRB.CreateCall(initFunc, {}, "");
+
       init_flag = 1;
     }
 
@@ -197,6 +196,8 @@ bool AddressShuffler::runOnFunction(Function &F) {
       IRBuilder<> builder(LI, nullptr, None);
       // Insert before Load instruction
       builder.SetInsertPoint(LI->getParent(), ++builder.GetInsertPoint());
+      DynamicAllocaLayout = builder.CreateAlloca(IntptrTy, nullptr);
+      // Sometime single CreateAlloca returns strange Address, don't know why
       DynamicAllocaLayout = builder.CreateAlloca(IntptrTy, nullptr);
       builder.CreateCall(loadFunc, { LI -> getPointerOperand()/*mapFrom*/, DynamicAllocaLayout}, "loadtmp");
       Value * tmpLoad = builder.CreateLoad(DynamicAllocaLayout);
