@@ -104,3 +104,7 @@ TODO: let the runtime function save mapping information
 - Setup Module pass that will handle global variables
 - TODO: handle global variables; function callbacks
 ---
+#### 8/8
+- Handled global variables: Malloc for all global variables at program startup, will need a seperate hashmap for globals to achieve access scope
+- TODO: array reallocation; function callbacks
+---
