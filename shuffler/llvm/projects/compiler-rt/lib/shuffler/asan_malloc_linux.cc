@@ -23,6 +23,8 @@
 #include "asan_internal.h"
 #include "asan_stack.h"
 
+#include <stdio.h>
+
 // ---------------------- Replacement functions ---------------- {{{1
 using namespace __asan;  // NOLINT
 
@@ -50,6 +52,7 @@ INTERCEPTOR(void, cfree, void *ptr) {
 
 INTERCEPTOR(void*, malloc, uptr size) {
   GET_STACK_TRACE_MALLOC;
+  //printf("malloc for size %x\n", size);
   return asan_malloc(size, &stack);
 }
 

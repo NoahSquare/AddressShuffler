@@ -53,13 +53,14 @@ char AddressShufflerModule::ID = 0;
 
 // Broken: Instrument global variables
 bool AddressShufflerModule::runOnModule(Module &M) {
+  
   llvm::errs() << "Running On Module\n";
   llvm::errs() << M.getModuleIdentifier() << "\n";
 
   const DataLayout &DL = M.getDataLayout();
   LLVMContext & Ctx = M.getContext();
   SmallVector<GlobalVariable *, 16> globalvariables;
-  Type * IntptrTy = IntegerType::getInt32Ty(Ctx);
+  Type * IntptrTy = IntegerType::getInt64Ty(Ctx);
   Type * IntptrPtrTy = PointerType::get(IntptrTy, 0);
 
   for(auto &GV : M.getGlobalList()) {
@@ -83,19 +84,16 @@ bool AddressShufflerModule::runOnModule(Module &M) {
 
       // Get first instruction of the program
       Function * main = M.getFunction("main");
-      Instruction * inst;
-      int i = 0;
-      for (auto &BB : *main) {
-        for (auto &Inst : BB) {
-          if(i == 0) {
-            i++;
-            inst = &Inst;
-          }
-          else
-            break;
-        }
-      }
+      BasicBlock &FirstBB = *main->begin();
+      Instruction * inst = dyn_cast<Instruction>(FirstBB.begin());
 
+      // Initialize Asan Allocator
+      Constant* initFunc = M.getOrInsertFunction(
+        "__asan_init", Type::getVoidTy(Ctx),Type::getInt32Ty(Ctx), NULL);
+      IRBuilder<> builder(inst);
+      builder.CreateCall(initFunc, {}, "");
+
+      // Malloc for globals
       Constant* AllocSize = ConstantExpr::getSizeOf(Ty);
       AllocSize = ConstantExpr::getTruncOrBitCast(AllocSize, IntptrTy);
       Instruction * Malloc = llvm::CallInst::CreateMalloc(inst,
@@ -109,6 +107,7 @@ bool AddressShufflerModule::runOnModule(Module &M) {
 
     }
   }
+  
   return false;
 }
 

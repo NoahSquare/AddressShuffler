@@ -29,6 +29,8 @@
 #include "sanitizer_common/sanitizer_quarantine.h"
 #include "lsan/lsan_common.h"
 
+#include <stdio.h>
+
 namespace __asan {
 
 // Valid redzone sizes are 16, 32, 64, ... 2048, so we encode them in 3 bits.
@@ -322,6 +324,7 @@ struct Allocator {
   // -------------------- Allocation/Deallocation routines ---------------
   void *Allocate(uptr size, uptr alignment, BufferedStackTrace *stack,
                  AllocType alloc_type, bool can_fill) {
+    printf("Allocation routines start!\n");
     if (UNLIKELY(!asan_inited))
       AsanInitFromRtl();
     Flags &fl = *flags();
@@ -450,6 +453,9 @@ struct Allocator {
     // Must be the last mutation of metadata in this function.
     atomic_store((atomic_uint8_t *)m, CHUNK_ALLOCATED, memory_order_release);
     ASAN_MALLOC_HOOK(res, size);
+
+    printf("Malloc address %x\n", res);
+
     return res;
   }
 

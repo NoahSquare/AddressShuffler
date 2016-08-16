@@ -34,16 +34,7 @@ namespace {
     bool doInitialization(Module &M) override;
     static char ID;
    private:
-    uint64_t getAllocaSizeInBytes(AllocaInst *AI);
-  };
-
-  class AddressShufflerModule : public ModulePass {
-   public:
-    AddressShufflerModule() : ModulePass(ID) {}
-    bool runOnModule(Module &M) override;
-    bool doInitialization(Module &M) override;
-    static char ID;  // Pass identification, replacement for typeid
-    const char *getPassName() const override { return "AddressShufflerModule"; }
+    AllocaInst *DynamicAllocaLayout = nullptr;
   };
 }  // namespace
 
@@ -75,29 +66,19 @@ void warningMessage() {
   llvm::errs() << "====================================================\n";
 }
 
-void getGlobalsUsedByFunction(const Function &F, SmallVector<GlobalVariable*, 16> *Globals) {
-  for (auto &BB : F)
-    for (auto &Inst : BB)
-      for (auto &Op : Inst.operands())
-        if (isa<GlobalVariable>(Op)) {
-          GlobalVariable* G = dyn_cast<GlobalVariable>(Op);
-          llvm:errs() << "push back global: " << G->getName() << "\n";
-          Globals->push_back(G);
-        }
-}
-
 bool AddressShuffler::runOnFunction(Function &F) {
+
   llvm::errs() << "Instrumenting function " << F.getName() << "\n";
   LLVMContext& Ctx = F.getContext();
   const DataLayout &DL = F.getParent()->getDataLayout();
   warningMessage();
   int LongSize = F.getParent()->getDataLayout().getPointerSizeInBits();
   //Type * IntptrTy = Type::getIntNTy(Ctx, LongSize);
-  Type * IntptrTy = IntegerType::getInt32Ty(Ctx);
+  Type * IntptrTy = IntegerType::getInt64Ty(Ctx);
   Type * IntptrPtrTy = PointerType::get(IntptrTy, 0);
   SmallSet<Value *, 16> TempsToInstrument;
   SmallVector<Instruction *, 16> ToInstrument;
-  AllocaInst *DynamicAllocaLayout = nullptr;
+  //AllocaInst *DynamicAllocaLayout = nullptr;
 
   //SmallVector<GlobalVariable *, 16> globalvariables;
   //getGlobalsUsedByFunction(F, &globalvariables);
@@ -110,19 +91,19 @@ bool AddressShuffler::runOnFunction(Function &F) {
 
   int NumInstrumented = 0;
   int init_flag = 0;
+  Value * testv = NULL;
 
   for (auto Inst : ToInstrument) {
     if(init_flag == 0) {
-      // Initialize Shuffler
-      Constant* initFunc = F.getParent()->getOrInsertFunction(
-        "_shuffler_init", Type::getVoidTy(Ctx),Type::getInt32Ty(Ctx), NULL);
+      // Initialieze Dynamic Alloca Storage
       IRBuilder<> IRB(Inst, nullptr, None);
-      //IRB.SetInsertPoint(Inst->getParent(), IRB.GetInsertPoint());
-      IRB.CreateCall(initFunc, {}, "");
+      DynamicAllocaLayout = IRB.CreateAlloca(IntptrTy, nullptr);
+      IRB.CreateStore(Constant::getNullValue(IntptrTy), DynamicAllocaLayout);
+      DynamicAllocaLayout->setAlignment(32);
 
       init_flag = 1;
     }
-
+    
     if(isa<AllocaInst>(Inst)) {
       // Handle Alloca instructions
       AllocaInst * AI = dyn_cast<AllocaInst>(Inst);
@@ -152,7 +133,7 @@ bool AddressShuffler::runOnFunction(Function &F) {
           builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
           Value * increment = ConstantInt::get(Type::getInt32Ty(Ctx), unitSize*i);
           
-          builder.CreateCall(saveFunc, { builder.CreateAdd(increment, builder.CreatePtrToInt(AI, IntptrTy))/*mapFrom*/, builder.CreateAdd(increment,builder.CreatePtrToInt(Malloc, IntptrTy))/*mapTo*/ }, "arrayAllocatmp");
+          builder.CreateCall(saveFunc, { builder.CreateAdd(increment, builder.CreatePtrToInt(AI, IntptrTy)), builder.CreateAdd(increment,builder.CreatePtrToInt(Malloc, IntptrTy)) }, "arrayAllocatmp");
         }        
         //AI->removeFromParent();
       } else {
@@ -168,7 +149,7 @@ bool AddressShuffler::runOnFunction(Function &F) {
         // Insert after Store Instruction
         builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
 
-        builder.CreateCall(saveFunc, { builder.CreatePtrToInt(AI, IntptrTy)/*mapFrom*/, builder.CreatePtrToInt(Malloc, IntptrTy)/*mapTo*/ }, "allocatmp");
+        builder.CreateCall(saveFunc, { builder.CreatePtrToInt(AI, IntptrTy), builder.CreatePtrToInt(Malloc, IntptrTy) }, "allocatmp");
         //AI->removeFromParent();
       }
     }
@@ -180,7 +161,7 @@ bool AddressShuffler::runOnFunction(Function &F) {
         "_load_mapping", Type::getVoidTy(Ctx),IntptrTy, NULL);
       IRBuilder<> builder(SI, nullptr, None);
       DynamicAllocaLayout = builder.CreateAlloca(IntptrTy, nullptr);
-      builder.CreateCall(loadFunc, { SI -> getPointerOperand()/*mapFrom*/, DynamicAllocaLayout}, "storetmp");
+      builder.CreateCall(loadFunc, { SI -> getPointerOperand(), DynamicAllocaLayout}, "storetmp");
       Value * tmpLoad = builder.CreateLoad(DynamicAllocaLayout);
       StoreInst * newStore = builder.CreateStore(value, builder.CreateIntToPtr(tmpLoad, IntptrPtrTy));
       newStore->setAlignment(SI->getAlignment());
@@ -199,7 +180,7 @@ bool AddressShuffler::runOnFunction(Function &F) {
       DynamicAllocaLayout = builder.CreateAlloca(IntptrTy, nullptr);
       // Sometime single CreateAlloca returns strange Address, don't know why
       DynamicAllocaLayout = builder.CreateAlloca(IntptrTy, nullptr);
-      builder.CreateCall(loadFunc, { LI -> getPointerOperand()/*mapFrom*/, DynamicAllocaLayout}, "loadtmp");
+      builder.CreateCall(loadFunc, { LI -> getPointerOperand(), DynamicAllocaLayout}, "loadtmp");
       Value * tmpLoad = builder.CreateLoad(DynamicAllocaLayout);
       LoadInst * mallocLoad = builder.CreateLoad(builder.CreateIntToPtr(tmpLoad, IntptrPtrTy));
 
@@ -216,7 +197,7 @@ bool AddressShuffler::runOnFunction(Function &F) {
       Constant* updateFunc = F.getParent()->getOrInsertFunction(
         "_update_mapping", Type::getVoidTy(Ctx),IntptrTy, NULL);
       
-      builder.CreateCall(updateFunc, { LI -> getPointerOperand()/*mapFrom*//*mapFrom*/, builder.CreatePtrToInt(Malloc, IntptrTy)/*new mapTo*/}, "updatetmp");
+      builder.CreateCall(updateFunc, { LI -> getPointerOperand(), builder.CreatePtrToInt(Malloc, IntptrTy)}, "updatetmp");
 
       // Copy the content to the new address
       Value * value = LI;
@@ -226,6 +207,7 @@ bool AddressShuffler::runOnFunction(Function &F) {
       LI->replaceAllUsesWith(mallocLoad);
       LI->removeFromParent();
     }
+    
     NumInstrumented++;
   }
 

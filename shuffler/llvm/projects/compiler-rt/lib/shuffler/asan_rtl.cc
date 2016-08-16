@@ -32,6 +32,8 @@
 #include "ubsan/ubsan_init.h"
 #include "ubsan/ubsan_platform.h"
 
+#include <stdio.h>
+
 int __asan_option_detect_stack_use_after_return;  // Global interface symbol.
 uptr *__asan_test_only_reported_buggy_pointer;  // Used only for testing asan.
 
@@ -611,6 +613,7 @@ void NOINLINE __asan_set_death_callback(void (*callback)(void)) {
 // Initialize as requested from instrumented application code.
 // We use this call as a trigger to wake up ASan from deactivated state.
 void __asan_init() {
+  printf("------------ asan initialzied ------------\n");
   AsanActivate();
   AsanInitInternal();
 }
