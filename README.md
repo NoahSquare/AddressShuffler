@@ -108,3 +108,7 @@ TODO: let the runtime function save mapping information
 - Handled global variables: Malloc for all global variables at program startup, will need a seperate hashmap for globals to achieve access scope
 - TODO: array reallocation; function callbacks
 ---
+#### 8/16
+- Merged Asan Allocator with Shuffler: malloc space is now assigned by asan allocator
+- TODO: remove redzones; add metadata for array allocations;
+---
