@@ -67,8 +67,10 @@ void warningMessage() {
 }
 
 bool AddressShuffler::runOnFunction(Function &F) {
+  
 
   llvm::errs() << "Instrumenting function " << F.getName() << "\n";
+  
   LLVMContext& Ctx = F.getContext();
   const DataLayout &DL = F.getParent()->getDataLayout();
   warningMessage();
@@ -128,13 +130,14 @@ bool AddressShuffler::runOnFunction(Function &F) {
                                          IntptrTy, Ty, AllocSize,
                                          nullptr, nullptr, "");
         IRBuilder<> builder(Malloc, nullptr, None);
+        builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
         for(; i < arrayTy->getNumElements(); i++) {
+          llvm::errs() << "flag " << i << " \n";
           // Insert after Store Instruction
-          builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
-          Value * increment = ConstantInt::get(Type::getInt32Ty(Ctx), unitSize*i);
-          
+          //builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
+          Value * increment = ConstantInt::get(Type::getInt64Ty(Ctx), unitSize*i);
           builder.CreateCall(saveFunc, { builder.CreateAdd(increment, builder.CreatePtrToInt(AI, IntptrTy)), builder.CreateAdd(increment,builder.CreatePtrToInt(Malloc, IntptrTy)) }, "arrayAllocatmp");
-        }        
+        }
         //AI->removeFromParent();
       } else {
         // Handle non-array allocation

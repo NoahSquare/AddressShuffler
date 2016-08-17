@@ -54,7 +54,7 @@ char AddressShufflerModule::ID = 0;
 // Broken: Instrument global variables
 bool AddressShufflerModule::runOnModule(Module &M) {
   
-  llvm::errs() << "Running On Module\n";
+  llvm::errs() << "Running On Module ";
   llvm::errs() << M.getModuleIdentifier() << "\n";
 
   const DataLayout &DL = M.getDataLayout();
@@ -63,6 +63,17 @@ bool AddressShufflerModule::runOnModule(Module &M) {
   Type * IntptrTy = IntegerType::getInt64Ty(Ctx);
   Type * IntptrPtrTy = PointerType::get(IntptrTy, 0);
 
+  // Get first instruction of the program
+    Function * main = M.getFunction("main");
+    BasicBlock &FirstBB = *main->begin();
+    Instruction * inst = dyn_cast<Instruction>(FirstBB.begin());
+
+    // Initialize Asan Allocator
+    Constant* initFunc = M.getOrInsertFunction(
+      "__asan_init", Type::getVoidTy(Ctx),Type::getInt32Ty(Ctx), NULL);
+    IRBuilder<> builder(inst);
+    builder.CreateCall(initFunc, {}, "");
+
   for(auto &GV : M.getGlobalList()) {
     if (isa<GlobalVariable>(GV)) {
       GlobalVariable* G = dyn_cast<GlobalVariable>(&GV);
@@ -70,6 +81,7 @@ bool AddressShufflerModule::runOnModule(Module &M) {
       globalvariables.push_back(G);
     }
   }
+
   for (auto G : globalvariables) {
     llvm:errs() << "handling global: " << G->getName() << "\n";
     if (G->hasInitializer()) {
@@ -82,17 +94,6 @@ bool AddressShufflerModule::runOnModule(Module &M) {
       uint64_t SizeInBytes = DL.getTypeAllocSize(Ty);
       llvm::errs() << " SizeInBytes: " << SizeInBytes << "\n";
 
-      // Get first instruction of the program
-      Function * main = M.getFunction("main");
-      BasicBlock &FirstBB = *main->begin();
-      Instruction * inst = dyn_cast<Instruction>(FirstBB.begin());
-
-      // Initialize Asan Allocator
-      Constant* initFunc = M.getOrInsertFunction(
-        "__asan_init", Type::getVoidTy(Ctx),Type::getInt32Ty(Ctx), NULL);
-      IRBuilder<> builder(inst);
-      builder.CreateCall(initFunc, {}, "");
-
       // Malloc for globals
       Constant* AllocSize = ConstantExpr::getSizeOf(Ty);
       AllocSize = ConstantExpr::getTruncOrBitCast(AllocSize, IntptrTy);
@@ -104,10 +105,9 @@ bool AddressShufflerModule::runOnModule(Module &M) {
             "_save_mapping", Type::getVoidTy(Ctx),IntptrTy, NULL);
       IRB.SetInsertPoint(Malloc->getParent(), ++IRB.GetInsertPoint());
       IRB.CreateCall(saveFunc, { IRB.CreatePtrToInt(G, IntptrTy), IRB.CreatePtrToInt(Malloc, IntptrTy) }, "globalAllocatmp");
-
     }
   }
-  
+
   return false;
 }
 
