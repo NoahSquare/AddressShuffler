@@ -125,19 +125,25 @@ bool AddressShuffler::runOnFunction(Function &F) {
 
         uint64_t i = 0;
         Constant* saveFunc = F.getParent()->getOrInsertFunction(
-            "_save_mapping", Type::getVoidTy(Ctx),IntptrTy, NULL);
+            "_save_array", Type::getVoidTy(Ctx),IntptrTy, NULL);
         Instruction * Malloc = llvm::CallInst::CreateMalloc(Inst,
                                          IntptrTy, Ty, AllocSize,
                                          nullptr, nullptr, "");
         IRBuilder<> builder(Malloc, nullptr, None);
         builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
+
+        // Create array mapping
+        Value * SizeInBytesV = ConstantInt::get(Type::getInt64Ty(Ctx), SizeInBytes);
+        Value * unitSizeV = ConstantInt::get(Type::getInt64Ty(Ctx), unitSize);
+        builder.CreateCall(saveFunc, { builder.CreatePtrToInt(AI, IntptrTy), builder.CreatePtrToInt(Malloc, IntptrTy), SizeInBytesV,unitSizeV }, "arrayAllocatmp");
+        /*
         for(; i < arrayTy->getNumElements(); i++) {
           llvm::errs() << "flag " << i << " \n";
           // Insert after Store Instruction
           //builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
           Value * increment = ConstantInt::get(Type::getInt64Ty(Ctx), unitSize*i);
           builder.CreateCall(saveFunc, { builder.CreateAdd(increment, builder.CreatePtrToInt(AI, IntptrTy)), builder.CreateAdd(increment,builder.CreatePtrToInt(Malloc, IntptrTy)) }, "arrayAllocatmp");
-        }
+        }*/
         //AI->removeFromParent();
       } else {
         // Handle non-array allocation
@@ -151,7 +157,6 @@ bool AddressShuffler::runOnFunction(Function &F) {
         IRBuilder<> builder(Malloc, nullptr, None);
         // Insert after Store Instruction
         builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
-
         builder.CreateCall(saveFunc, { builder.CreatePtrToInt(AI, IntptrTy), builder.CreatePtrToInt(Malloc, IntptrTy) }, "allocatmp");
         //AI->removeFromParent();
       }

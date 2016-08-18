@@ -324,7 +324,7 @@ struct Allocator {
   // -------------------- Allocation/Deallocation routines ---------------
   void *Allocate(uptr size, uptr alignment, BufferedStackTrace *stack,
                  AllocType alloc_type, bool can_fill) {
-    printf("Allocation routines start!\n");
+    
     if (UNLIKELY(!asan_inited))
       AsanInitFromRtl();
     Flags &fl = *flags();
@@ -361,7 +361,6 @@ struct Allocator {
              (void*)size);
       return allocator.ReturnNullOrDie();
     }
-
     AsanThread *t = GetCurrentThread();
     void *allocated;
     bool check_rss_limit = true;
@@ -378,7 +377,6 @@ struct Allocator {
 
     if (!allocated)
       return allocator.ReturnNullOrDie();
-
     if (*(u8 *)MEM_TO_SHADOW((uptr)allocated) == 0 && CanPoisonMemory()) {
       // Heap poisoning is enabled, but the allocator provides an unpoisoned
       // chunk. This is possible if CanPoisonMemory() was false for some
@@ -387,7 +385,6 @@ struct Allocator {
       uptr allocated_size = allocator.GetActuallyAllocatedSize(allocated);
       PoisonShadow((uptr)allocated, allocated_size, kAsanHeapLeftRedzoneMagic);
     }
-
     uptr alloc_beg = reinterpret_cast<uptr>(allocated);
     uptr alloc_end = alloc_beg + needed_size;
     uptr beg_plus_redzone = alloc_beg + rz_size;
@@ -421,7 +418,6 @@ struct Allocator {
       meta[0] = size;
       meta[1] = chunk_beg;
     }
-
     m->alloc_context_id = StackDepotPut(*stack);
 
     uptr size_rounded_down_to_granularity =
@@ -454,7 +450,8 @@ struct Allocator {
     atomic_store((atomic_uint8_t *)m, CHUNK_ALLOCATED, memory_order_release);
     ASAN_MALLOC_HOOK(res, size);
 
-    printf("Malloc address %x\n", res);
+    if(alloc_type == FROM_MALLOC)
+      printf("#### asan_allocator : [0x%08x] malloced ####\n", res, size);
 
     return res;
   }

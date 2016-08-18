@@ -112,3 +112,7 @@ TODO: let the runtime function save mapping information
 - Merged Asan Allocator with Shuffler: malloc space is now assigned by asan allocator
 - TODO: remove redzones; add metadata for array allocations;
 ---
+#### 8/18
+- Finished array reallocation
+- TODO : function callbacks; testcases
+---
