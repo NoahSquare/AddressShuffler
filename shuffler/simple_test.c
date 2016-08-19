@@ -24,4 +24,5 @@ int main() {
   // Test different types of array
   char c[12] = "hello world";
   printf(" *** simple_test.c: %s ***\n", c);
+
 }

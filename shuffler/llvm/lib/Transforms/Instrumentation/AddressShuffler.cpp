@@ -80,10 +80,6 @@ bool AddressShuffler::runOnFunction(Function &F) {
   Type * IntptrPtrTy = PointerType::get(IntptrTy, 0);
   SmallSet<Value *, 16> TempsToInstrument;
   SmallVector<Instruction *, 16> ToInstrument;
-  //AllocaInst *DynamicAllocaLayout = nullptr;
-
-  //SmallVector<GlobalVariable *, 16> globalvariables;
-  //getGlobalsUsedByFunction(F, &globalvariables);
 
   for (auto &BB : F) {
     for (auto &Inst : BB) {
@@ -102,64 +98,35 @@ bool AddressShuffler::runOnFunction(Function &F) {
       DynamicAllocaLayout = IRB.CreateAlloca(IntptrTy, nullptr);
       IRB.CreateStore(Constant::getNullValue(IntptrTy), DynamicAllocaLayout);
       DynamicAllocaLayout->setAlignment(32);
-
       init_flag = 1;
     }
     
     if(isa<AllocaInst>(Inst)) {
+       
       // Handle Alloca instructions
       AllocaInst * AI = dyn_cast<AllocaInst>(Inst);
+      llvm::errs() << "Found malloc: isStaticAlloca()? " << AI->isStaticAlloca() << "\n ";
       // Get type of alloca inst
       Type *Ty = AI->getAllocatedType();
       // Get size of alloca inst
       Constant* AllocSize = ConstantExpr::getSizeOf(Ty);
       AllocSize = ConstantExpr::getTruncOrBitCast(AllocSize, IntptrTy);
-
-      // Handle array allocation
-      // Now array will be allocated in a consecutive heap space;
-      // Save mapping infromation for each element in the array.
-      if (Ty->isArrayTy()) {
-        ArrayType * arrayTy = dyn_cast<ArrayType>(Ty);
-        uint64_t SizeInBytes = AI->getModule()->getDataLayout().getTypeStoreSize(Ty);
-        uint64_t unitSize = SizeInBytes / arrayTy->getNumElements();
-
-        uint64_t i = 0;
-        Constant* saveFunc = F.getParent()->getOrInsertFunction(
-            "_save_array", Type::getVoidTy(Ctx),IntptrTy, NULL);
-        Instruction * Malloc = llvm::CallInst::CreateMalloc(Inst,
+      // Insert tmp malloc instruction
+      Instruction * Malloc = llvm::CallInst::CreateMalloc(Inst,
                                          IntptrTy, Ty, AllocSize,
                                          nullptr, nullptr, "");
-        IRBuilder<> builder(Malloc, nullptr, None);
-        builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
 
-        // Create array mapping
-        Value * SizeInBytesV = ConstantInt::get(Type::getInt64Ty(Ctx), SizeInBytes);
-        Value * unitSizeV = ConstantInt::get(Type::getInt64Ty(Ctx), unitSize);
-        builder.CreateCall(saveFunc, { builder.CreatePtrToInt(AI, IntptrTy), builder.CreatePtrToInt(Malloc, IntptrTy), SizeInBytesV,unitSizeV }, "arrayAllocatmp");
-        /*
-        for(; i < arrayTy->getNumElements(); i++) {
-          llvm::errs() << "flag " << i << " \n";
-          // Insert after Store Instruction
-          //builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
-          Value * increment = ConstantInt::get(Type::getInt64Ty(Ctx), unitSize*i);
-          builder.CreateCall(saveFunc, { builder.CreateAdd(increment, builder.CreatePtrToInt(AI, IntptrTy)), builder.CreateAdd(increment,builder.CreatePtrToInt(Malloc, IntptrTy)) }, "arrayAllocatmp");
-        }*/
-        //AI->removeFromParent();
-      } else {
-        // Handle non-array allocation
-        // Insert tmp malloc instruction
-        Instruction * Malloc = llvm::CallInst::CreateMalloc(Inst,
-                                           IntptrTy, Ty, AllocSize,
-                                           nullptr, nullptr, "");
+      uint64_t SizeInBytes = AI->getModule()->getDataLayout().getTypeStoreSize(Ty);
+      Value * SizeInBytesV = ConstantInt::get(Type::getInt64Ty(Ctx), SizeInBytes);
 
-        Constant* saveFunc = F.getParent()->getOrInsertFunction(
-          "_save_mapping", Type::getVoidTy(Ctx),IntptrTy, NULL);
-        IRBuilder<> builder(Malloc, nullptr, None);
-        // Insert after Store Instruction
-        builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
-        builder.CreateCall(saveFunc, { builder.CreatePtrToInt(AI, IntptrTy), builder.CreatePtrToInt(Malloc, IntptrTy) }, "allocatmp");
-        //AI->removeFromParent();
-      }
+      Constant* saveFunc = F.getParent()->getOrInsertFunction(
+        "_save_mapping", Type::getVoidTy(Ctx),IntptrTy, NULL);
+      IRBuilder<> builder(Malloc, nullptr, None);
+      // Insert after Store Instruction
+      builder.SetInsertPoint(Malloc->getParent(), ++builder.GetInsertPoint());
+      builder.CreateCall(saveFunc, { builder.CreatePtrToInt(AI, IntptrTy), builder.CreatePtrToInt(Malloc, IntptrTy), SizeInBytesV }, "allocatmp");
+      //AI->removeFromParent();
+      
     }
     else if(isa<StoreInst>(Inst)) {
       // Handle Store instructions
@@ -185,8 +152,7 @@ bool AddressShuffler::runOnFunction(Function &F) {
       IRBuilder<> builder(LI, nullptr, None);
       // Insert before Load instruction
       builder.SetInsertPoint(LI->getParent(), ++builder.GetInsertPoint());
-      DynamicAllocaLayout = builder.CreateAlloca(IntptrTy, nullptr);
-      // Sometime single CreateAlloca returns strange Address, don't know why
+      //DynamicAllocaLayout = builder.CreateAlloca(IntptrTy, nullptr);
       DynamicAllocaLayout = builder.CreateAlloca(IntptrTy, nullptr);
       builder.CreateCall(loadFunc, { LI -> getPointerOperand(), DynamicAllocaLayout}, "loadtmp");
       Value * tmpLoad = builder.CreateLoad(DynamicAllocaLayout);
