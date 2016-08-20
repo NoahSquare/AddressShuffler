@@ -158,24 +158,11 @@ bool AddressShuffler::runOnFunction(Function &F) {
       Value * tmpLoad = builder.CreateLoad(DynamicAllocaLayout);
       LoadInst * mallocLoad = builder.CreateLoad(builder.CreateIntToPtr(tmpLoad, IntptrPtrTy));
 
-      // Reallocate to achieve shuffling
-      // Get type of loadinst
-      Type *Ty = LI->getPointerOperand()->getType();
-      // Get size of loadinst
-      Constant* AllocSize = ConstantExpr::getSizeOf(Ty);
-      AllocSize = ConstantExpr::getTruncOrBitCast(AllocSize, IntptrTy);
-      // Insert new malloc instruction
-      Instruction * Malloc = llvm::CallInst::CreateMalloc(Inst,
-                                         IntptrTy, Ty, AllocSize,
-                                         nullptr, nullptr, "");
+      // Reallocate and update mapping info
       Constant* updateFunc = F.getParent()->getOrInsertFunction(
         "_update_mapping", Type::getVoidTy(Ctx),IntptrTy, NULL);
       
-      builder.CreateCall(updateFunc, { LI -> getPointerOperand(), builder.CreatePtrToInt(Malloc, IntptrTy)}, "updatetmp");
-
-      // Copy the content to the new address
-      Value * value = LI;
-      StoreInst * newStore = builder.CreateStore(value, Malloc, IntptrPtrTy);
+      builder.CreateCall(updateFunc, { LI -> getPointerOperand()}, "updatetmp");
 
       // Remove LI instruction
       LI->replaceAllUsesWith(mallocLoad);

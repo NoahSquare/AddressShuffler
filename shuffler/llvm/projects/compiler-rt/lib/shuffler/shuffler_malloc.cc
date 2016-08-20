@@ -63,7 +63,7 @@ extern "C" void _load_mapping(uptr mapFrom, void * load_ptr) {
   }
 }
 
-extern "C" void _update_mapping(uptr mapFrom, uptr mapTo) {
+extern "C" void _update_mapping(uptr mapFrom) {
   printf("Running _update_mapping\n");
   struct map_info * tmp;
   HASH_FIND_UPTR( hashmap, &mapFrom, tmp); 
