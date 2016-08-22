@@ -102,7 +102,6 @@ bool AddressShuffler::runOnFunction(Function &F) {
     }
     
     if(isa<AllocaInst>(Inst)) {
-       
       // Handle Alloca instructions
       AllocaInst * AI = dyn_cast<AllocaInst>(Inst);
       llvm::errs() << "Found malloc: isStaticAlloca()? " << AI->isStaticAlloca() << "\n ";
@@ -136,10 +135,10 @@ bool AddressShuffler::runOnFunction(Function &F) {
         "_load_mapping", Type::getVoidTy(Ctx),IntptrTy, NULL);
       IRBuilder<> builder(SI, nullptr, None);
       DynamicAllocaLayout = builder.CreateAlloca(IntptrTy, nullptr);
-      builder.CreateCall(loadFunc, { SI -> getPointerOperand(), DynamicAllocaLayout}, "storetmp");
+      builder.CreateCall(loadFunc, { builder.CreatePtrToInt(SI -> getPointerOperand(), IntptrTy), DynamicAllocaLayout}, "storetmp");
       Value * tmpLoad = builder.CreateLoad(DynamicAllocaLayout);
       StoreInst * newStore = builder.CreateStore(value, builder.CreateIntToPtr(tmpLoad, IntptrPtrTy));
-      newStore->setAlignment(SI->getAlignment());
+      //newStore->setAlignment(SI->getAlignment());
       // Remove SI instruction
       SI->removeFromParent();
     }
@@ -154,15 +153,19 @@ bool AddressShuffler::runOnFunction(Function &F) {
       builder.SetInsertPoint(LI->getParent(), ++builder.GetInsertPoint());
       //DynamicAllocaLayout = builder.CreateAlloca(IntptrTy, nullptr);
       DynamicAllocaLayout = builder.CreateAlloca(IntptrTy, nullptr);
-      builder.CreateCall(loadFunc, { LI -> getPointerOperand(), DynamicAllocaLayout}, "loadtmp");
+      builder.CreateCall(loadFunc, { builder.CreatePtrToInt(LI -> getPointerOperand(), IntptrTy), DynamicAllocaLayout}, "loadtmp");
       Value * tmpLoad = builder.CreateLoad(DynamicAllocaLayout);
-      LoadInst * mallocLoad = builder.CreateLoad(builder.CreateIntToPtr(tmpLoad, IntptrPtrTy));
+
+      Type * Int32ptrTy = IntegerType::getInt32Ty(Ctx);
+      Type * Int32ptrPtrTy = PointerType::get(Int32ptrTy, 0);
+
+      LoadInst * mallocLoad = builder.CreateLoad(builder.CreateIntToPtr(tmpLoad, Int32ptrPtrTy));
 
       // Reallocate and update mapping info
       Constant* updateFunc = F.getParent()->getOrInsertFunction(
         "_update_mapping", Type::getVoidTy(Ctx),IntptrTy, NULL);
       
-      builder.CreateCall(updateFunc, { LI -> getPointerOperand()}, "updatetmp");
+      builder.CreateCall(updateFunc, { builder.CreatePtrToInt(LI -> getPointerOperand(), IntptrTy)}, "updatetmp");
 
       // Remove LI instruction
       LI->replaceAllUsesWith(mallocLoad);

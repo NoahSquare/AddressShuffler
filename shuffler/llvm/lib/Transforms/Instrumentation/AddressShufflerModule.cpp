@@ -70,7 +70,7 @@ bool AddressShufflerModule::runOnModule(Module &M) {
 
     // Initialize Asan Allocator
     Constant* initFunc = M.getOrInsertFunction(
-      "__asan_init", Type::getVoidTy(Ctx),Type::getInt32Ty(Ctx), NULL);
+      "__asan_init", Type::getVoidTy(Ctx),Type::getInt64Ty(Ctx), NULL);
     IRBuilder<> builder(inst);
     builder.CreateCall(initFunc, {}, "");
 
