@@ -88,23 +88,12 @@ bool AddressShufflerModule::runOnModule(Module &M) {
       llvm::errs() << " global " << G->getName() << " has an initializer!\n";
       //Constant * init = GV->getInitializer();
       Type *Ty = G->getValueType();
-      llvm::errs() << " type: ";
-      Ty->print(errs()); 
-      llvm::errs() << "\n";
-      uint64_t SizeInBytes = DL.getTypeAllocSize(Ty);
-      llvm::errs() << " SizeInBytes: " << SizeInBytes << "\n";
+      uint64_t SizeInBytes = M.getDataLayout().getTypeStoreSize(Ty);
+      Value * SizeInBytesV = ConstantInt::get(Type::getInt64Ty(Ctx), SizeInBytes);
 
-      // Malloc for globals
-      Constant* AllocSize = ConstantExpr::getSizeOf(Ty);
-      AllocSize = ConstantExpr::getTruncOrBitCast(AllocSize, IntptrTy);
-      Instruction * Malloc = llvm::CallInst::CreateMalloc(inst,
-                                         IntptrTy, Ty, AllocSize,
-                                         nullptr, nullptr, "");
-      IRBuilder<> IRB(Malloc, nullptr, None);
       Constant* saveFunc = M.getOrInsertFunction(
-            "_save_mapping", Type::getVoidTy(Ctx),IntptrTy, NULL);
-      IRB.SetInsertPoint(Malloc->getParent(), ++IRB.GetInsertPoint());
-      IRB.CreateCall(saveFunc, { IRB.CreatePtrToInt(G, IntptrTy), IRB.CreatePtrToInt(Malloc, IntptrTy) }, "globalAllocatmp");
+            "_shuffler_allocate_global", Type::getVoidTy(Ctx),IntptrTy, NULL);
+      builder.CreateCall(saveFunc, { builder.CreatePtrToInt(G, IntptrTy), SizeInBytesV }, "globalAllocatmp");
     }
   }
 

@@ -95,6 +95,18 @@ extern "C" void _update_mapping(uptr mapFrom) {
   }
 }
 
+extern "C" void _shuffler_allocate_global(uptr mapFrom, uptr size) {
+  void * newbaseptr = (void *)malloc(size);
+  memcpy(newbaseptr, (void *)mapFrom, size);
+  int i = 0;
+  for(; i < size; i++) {
+    uptr tmp = (uptr)newbaseptr+i;
+    printf(" >> Saving mapping 0x%08x -> 0x%08x, baseptr = 0x%08x\n", mapFrom+i, tmp, mapFrom);
+    add_node(mapFrom+i, tmp, mapFrom, size);
+  }
+  //printf(" Shuffler printing 0x%08x\n", value);
+}
+
 extern "C" void _shuffler_init() {
   // Setup lookup table if needed
 }

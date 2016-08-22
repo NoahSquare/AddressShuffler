@@ -1,7 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
+int g;
+
+void foo() {
+  g = 10;
+}
 
 int main() {
+  // Test global
+  int g = 5;
+  foo();
+  printf(" \n\n *** simple_test.c: g = %d ***\n\n\n", g);
+  
   // Test creating array
   int b[10];
 
