@@ -37,8 +37,9 @@ endif()
 # working binaries.
 if(COMPILER_RT_CAN_EXECUTE_TESTS)
   # XXX. Need to have something similar COMPILER_RT_HAS_SHUFFLER
-  add_subdirectory(shuffler)
-
+  if(COMPILER_RT_HAS_SHUFFLER)
+    add_subdirectory(shuffler)
+  endif()
   if(COMPILER_RT_HAS_ASAN)
     add_subdirectory(asan)
   endif()
