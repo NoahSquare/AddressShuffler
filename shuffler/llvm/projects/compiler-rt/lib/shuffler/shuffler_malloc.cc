@@ -59,6 +59,7 @@ extern "C" void _load_mapping(uptr mapFrom, void * load_ptr) {
     memcpy(load_ptr, &s->mapTo, sizeof(uptr));
   }
   else {
+    printf(" >> NOT Finded mapping 0x%08x\n", mapFrom);
     memcpy(load_ptr, &mapFrom, sizeof(uptr));
   }
 }
