@@ -1,4 +1,5 @@
-// RUN: %clangxx_shuffler -O0 %s -o %t && not %run %t 2>&1 | FileCheck %s
+// RUN: %clangxx_shuffler -O0 %s -o %t
+// RUN: %run %t 2>&1 | FileCheck %s
 
 #include <stdio.h>
 
@@ -13,9 +14,9 @@ int main() {
   printf("string = %s\n", string);
   printf("pi = %f\n", pi);
 
-  // CHECK: {a = 5}
-  // CHECK: {c = c}
-  // CHECK: {string = string}
-  // CHECK: {pi = 3.14}
+  // CHECK: a = 5
+  // CHECK: c = c
+  // CHECK: string = string
+  // CHECK: pi = 3.14
 
 }

@@ -1,8 +1,8 @@
-// RUN: %clangxx_shuffler -O0 %s -o %t && not %run %t 2>&1 | FileCheck %s
+// RUN: %clangxx_shuffler -O0 %s -o %t && %run %t 2>&1 | FileCheck %s
 
 #include <stdio.h>
 
-int main() {  
+int main() {
   // Test creating array
   int b[10];
 
@@ -26,11 +26,11 @@ int main() {
   char c[12] = "hello world";
   printf("string = %s\n", c);
 
-  // CHECK: {b[1] = 1}
-  // CHECK: {b[2] = 2}
-  // CHECK: {updated1 b[1] = 11}
-  // CHECK: {updated1 b[2] = 12}
-  // CHECK: {updated2 b[1] = 11}
-  // CHECK: {updated2 b[2] = 12}
+  // CHECK: b[1] = 1
+  // CHECK: b[2] = 2
+  // CHECK: updated1 b[1] = 11
+  // CHECK: updated1 b[2] = 12
+  // CHECK: updated2 b[1] = 11
+  // CHECK: updated2 b[2] = 12
 
 }

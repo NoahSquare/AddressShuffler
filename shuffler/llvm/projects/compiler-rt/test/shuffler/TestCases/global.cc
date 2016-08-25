@@ -22,9 +22,9 @@ int main() {
   printf("a++ = %d\n", a);
   printf("c++ = %c\n", c);
 
-  // CHECK: {a = 5}
-  // CHECK: {c = c}
-  // CHECK: {a++ = 6}
-  // CHECK: {c++ = d}
+  // CHECK: a = 5
+  // CHECK: c = c
+  // CHECK: a++ = 6
+  // CHECK: c++ = d
 
 }
