@@ -69,10 +69,11 @@ bool AddressShufflerModule::runOnModule(Module &M) {
     Instruction * inst = dyn_cast<Instruction>(FirstBB.begin());
 
     // Initialize Asan Allocator
-    Constant* initFunc = M.getOrInsertFunction(
-      "__asan_init", Type::getVoidTy(Ctx),Type::getInt64Ty(Ctx), NULL);
+    //Constant* initFunc = M.getOrInsertFunction(
+    //  "__asan_init", Type::getVoidTy(Ctx),Type::getInt64Ty(Ctx), NULL);
     IRBuilder<> builder(inst);
-    builder.CreateCall(initFunc, {}, "");
+    //builder.CreateCall(initFunc, {}, "");
+
 
   for(auto &GV : M.getGlobalList()) {
     if (isa<GlobalVariable>(GV)) {

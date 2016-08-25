@@ -104,7 +104,7 @@ bool AddressShuffler::runOnFunction(Function &F) {
     if(isa<AllocaInst>(Inst)) {
       // Handle Alloca instructions
       AllocaInst * AI = dyn_cast<AllocaInst>(Inst);
-      llvm::errs() << "Found malloc: isStaticAlloca()? " << AI->isStaticAlloca() << "\n ";
+      //llvm::errs() << "Found malloc: isStaticAlloca()? " << AI->isStaticAlloca() << "\n ";
       // Get type of alloca inst
       Type *Ty = AI->getAllocatedType();
       // Get size of alloca inst
