@@ -1,5 +1,4 @@
-// RUN: %clangxx_shuffler -O0 %s -o %t
-// RUN: %run %t 2>&1 | FileCheck %s
+// RUN: %clangxx_shuffler -O0 %s -o %t && %run %t 2>&1 | FileCheck %s
 
 #include <stdio.h>
 int main() {
