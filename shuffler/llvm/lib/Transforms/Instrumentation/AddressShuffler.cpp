@@ -159,7 +159,7 @@ bool AddressShuffler::runOnFunction(Function &F) {
       Type * Int32ptrTy = IntegerType::getInt32Ty(Ctx);
       Type * Int32ptrPtrTy = PointerType::get(Int32ptrTy, 0);
 
-      LoadInst * mallocLoad = builder.CreateLoad(builder.CreateIntToPtr(tmpLoad, Int32ptrPtrTy));
+      LoadInst * mallocLoad = builder.CreateLoad(LI->getType(), builder.CreateIntToPtr(tmpLoad, Int32ptrPtrTy), "");
 
       // Reallocate and update mapping info
       Constant* updateFunc = F.getParent()->getOrInsertFunction(
