@@ -81,6 +81,7 @@ extern "C" void _update_mapping(uptr mapFrom) {
 
     void * newbaseptr = (void *)malloc(size);
     memcpy(newbaseptr, (void *)basenode->mapTo, size);
+    free((void *)basenode->mapTo);
 
     int i = 0;
     for(; i < size; i++){

@@ -67,7 +67,6 @@ void warningMessage() {
 }
 
 bool AddressShuffler::runOnFunction(Function &F) {
-  
 
   llvm::errs() << "Instrumenting function " << F.getName() << "\n";
   
@@ -156,10 +155,7 @@ bool AddressShuffler::runOnFunction(Function &F) {
       builder.CreateCall(loadFunc, { builder.CreatePtrToInt(LI -> getPointerOperand(), IntptrTy), DynamicAllocaLayout}, "loadtmp");
       Value * tmpLoad = builder.CreateLoad(DynamicAllocaLayout);
 
-      Type * Int32ptrTy = IntegerType::getInt32Ty(Ctx);
-      Type * Int32ptrPtrTy = PointerType::get(Int32ptrTy, 0);
-
-      LoadInst * mallocLoad = builder.CreateLoad(LI->getType(), builder.CreateIntToPtr(tmpLoad, Int32ptrPtrTy), "");
+      LoadInst * mallocLoad = builder.CreateLoad(LI->getType(), builder.CreateIntToPtr(tmpLoad, IntptrPtrTy), "");
 
       // Reallocate and update mapping info
       Constant* updateFunc = F.getParent()->getOrInsertFunction(
